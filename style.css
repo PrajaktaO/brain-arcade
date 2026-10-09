@@ -1,0 +1,348 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+:root {
+    --ink: #26335b;
+    --purple: #7655e8;
+    --pink: #ff79a8;
+    --yellow: #ffd85c;
+    --mint: #bdf5df;
+    --paper: #ffffff;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Nunito", "Trebuchet MS", sans-serif;
+    color: var(--ink);
+    background:
+        radial-gradient(circle at 10% 15%, #fff0b9 0 7%, transparent 7.5%),
+        radial-gradient(circle at 92% 25%, #d9f9ee 0 9%, transparent 9.5%),
+        linear-gradient(145deg, #d8d9ff, #fce5f0 52%, #fff1c8);
+}
+
+button {
+    font: inherit;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 18px clamp(16px, 5vw, 64px);
+    background: rgba(255, 255, 255, 0.78);
+    border-bottom: 2px solid rgba(118, 85, 232, 0.12);
+}
+
+.brand {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 1.2rem;
+    font-weight: 900;
+}
+
+.stats {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
+}
+
+.stats span {
+    background: white;
+    border-radius: 999px;
+    padding: 8px 13px;
+    box-shadow: 0 3px 10px #26335b12;
+}
+
+.game-world {
+    width: min(100% - 28px, 760px);
+    margin: 0 auto;
+}
+
+.hero {
+    text-align: center;
+    padding: 35px 12px 18px;
+    position: relative;
+}
+
+.eyebrow {
+    color: #7655e8;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+}
+
+h1 {
+    font-size: clamp(2.2rem, 7vw, 3.7rem);
+    line-height: 1.05;
+    margin: 12px 0;
+    font-weight: 900;
+}
+
+h1 span {
+    color: #7655e8;
+}
+
+.hero > p:not(.eyebrow) {
+    max-width: 440px;
+    margin: 12px auto;
+    line-height: 1.6;
+}
+
+.island-art {
+    height: 125px;
+    position: relative;
+    overflow: hidden;
+}
+
+.island {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 6rem;
+    filter: drop-shadow(0 8px 2px #26335b12);
+}
+
+.cloud {
+    position: absolute;
+    font-size: 2rem;
+}
+
+.cloud-one {
+    top: 22px;
+    left: 20%;
+}
+
+.cloud-two {
+    top: 45px;
+    right: 19%;
+}
+
+.sparkle {
+    position: absolute;
+    font-size: 1.4rem;
+}
+
+.sparkle-one {
+    top: 20px;
+    right: 31%;
+}
+
+.sparkle-two {
+    top: 54px;
+    left: 30%;
+}
+
+.game-panel {
+    background: var(--paper);
+    padding: clamp(20px, 5vw, 36px);
+    border-radius: 28px;
+    border: 3px solid white;
+    box-shadow: 0 12px 0 #7655e81b, 0 20px 45px #26335b15;
+}
+
+.level-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.level-badge {
+    background: #eee8ff;
+    color: #6745d7;
+    padding: 7px 12px;
+    border-radius: 999px;
+}
+
+.progress-track {
+    height: 10px;
+    background: #eeeefa;
+    border-radius: 99px;
+    overflow: hidden;
+    margin: 17px 0 25px;
+}
+
+.progress-fill {
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #7655e8, #ff79a8);
+    border-radius: inherit;
+    transition: width 0.3s ease;
+}
+
+#gameContent {
+    text-align: center;
+}
+
+.challenge-icon {
+    font-size: 2.8rem;
+}
+
+.category {
+    color: #8b70e8;
+    font-weight: 900;
+    font-size: 0.76rem;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+}
+
+h2 {
+    font-size: clamp(1.3rem, 4vw, 1.8rem);
+    margin: 10px 0;
+}
+
+.instruction {
+    color: #69718d;
+    line-height: 1.5;
+}
+
+.scrambled-word {
+    color: #7655e8;
+    font-size: clamp(1.5rem, 6vw, 2.5rem);
+    font-weight: 900;
+    letter-spacing: 5px;
+    margin: 22px 0;
+}
+
+.answers {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 20px 0 12px;
+}
+
+.answer-button {
+    background: #f7f5ff;
+    color: var(--ink);
+    border: 2px solid #e6e0ff;
+    border-radius: 15px;
+    padding: 15px 10px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+}
+
+.answer-button:hover:not(:disabled) {
+    transform: translateY(-3px);
+    background: #eee8ff;
+}
+
+.answer-button:focus-visible,
+.main-button:focus-visible {
+    outline: 3px solid #26335b;
+    outline-offset: 3px;
+}
+
+.answer-button:disabled {
+    cursor: default;
+    opacity: 0.9;
+}
+
+.answer-button.correct {
+    background: #d9fae9;
+    border-color: #39b77b;
+}
+
+.answer-button.wrong {
+    background: #ffe2e8;
+    border-color: #f0718d;
+}
+
+.feedback {
+    min-height: 28px;
+    font-weight: 800;
+    line-height: 1.5;
+}
+
+.main-button {
+    border: none;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #7655e8, #9879ff);
+    color: white;
+    padding: 15px 24px;
+    font-weight: 900;
+    box-shadow: 0 5px 0 #5638bc;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: transform 0.15s;
+}
+
+.main-button:hover {
+    transform: translateY(-2px);
+}
+
+.main-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #5638bc;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.how-to-play {
+    padding: 26px 0;
+    text-align: center;
+}
+
+.how-to-play h2 {
+    margin-bottom: 18px;
+}
+
+.mission-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.mission-grid div {
+    background: #ffffffa8;
+    border: 1px solid #ffffff;
+    border-radius: 18px;
+    padding: 16px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 1.7rem;
+}
+
+.mission-grid strong {
+    font-size: 0.95rem;
+}
+
+.mission-grid span {
+    color: #69718d;
+    font-size: 0.75rem;
+}
+
+footer {
+    text-align: center;
+    padding: 10px 10px 28px;
+    color: #69718d;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 420px) {
+    .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .answers {
+        grid-template-columns: 1fr;
+    }
+
+    .mission-grid {
+        gap: 7px;
+    }
+}

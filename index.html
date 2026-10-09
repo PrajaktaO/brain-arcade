@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brain Arcade - The Brain Islands</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="#" aria-label="Brain Arcade home">
+            🧠 Brain Arcade
+        </a>
+        <div class="stats">
+            <span>⭐ <strong id="totalStars">0</strong></span>
+            <span>🏆 Best: <strong id="bestScore">0</strong></span>
+        </div>
+    </header>
+
+    <main class="game-world">
+        <section class="hero">
+            <p class="eyebrow">YOUR ADVENTURE STARTS HERE</p>
+            <h1>Welcome to the<br><span>Brain Islands!</span></h1>
+            <p>Solve puzzles, collect stars and become a Brain Explorer.</p>
+            <div class="island-art" aria-hidden="true">
+                <span class="cloud cloud-one">☁️</span>
+                <span class="cloud cloud-two">☁️</span>
+                <span class="island">🏝️</span>
+                <span class="sparkle sparkle-one">✨</span>
+                <span class="sparkle sparkle-two">⭐</span>
+            </div>
+        </section>
+
+        <section class="game-panel" aria-live="polite">
+            <div class="level-row">
+                <span class="level-badge" id="levelBadge">LEVEL 1</span>
+                <span id="roundLabel">Challenge 1 of 5</span>
+            </div>
+
+            <div class="progress-track">
+                <div id="progressBar" class="progress-fill"></div>
+            </div>
+
+            <div id="gameContent">
+                <div class="challenge-icon" id="challengeIcon">🔤</div>
+                <p class="category" id="category">WORD SCRAMBLE</p>
+                <h2 id="question">Ready for your first challenge?</h2>
+                <p id="instruction" class="instruction">
+                    Put your brain to the test!
+                </p>
+
+                <div id="scrambledWord" class="scrambled-word"></div>
+                <div id="answers" class="answers"></div>
+                <p id="feedback" class="feedback" role="status"></p>
+
+                <button id="startButton" class="main-button">
+                    Start Adventure 🚀
+                </button>
+                <button id="nextButton" class="main-button" hidden>
+                    Next Challenge ➜
+                </button>
+            </div>
+        </section>
+
+        <section class="how-to-play">
+            <h2>🎮 Your mission</h2>
+            <div class="mission-grid">
+                <div>🧩<strong>Solve</strong><span>Crack each puzzle</span></div>
+                <div>⭐<strong>Collect</strong><span>Earn points and stars</span></div>
+                <div>🗺️<strong>Explore</strong><span>Complete each level</span></div>
+            </div>
+        </section>
+
+        <footer>Made for curious minds · Every puzzle is an adventure!</footer>
+    </main>
+</body>
+</html>
