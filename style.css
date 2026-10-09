@@ -14,9 +14,14 @@
     box-sizing: border-box;
 }
 
+html {
+    min-height: 100%;
+}
+
 body {
     margin: 0;
     min-height: 100vh;
+    min-height: 100dvh;
     font-family: "Nunito", "Trebuchet MS", sans-serif;
     color: var(--ink);
     background:
@@ -34,7 +39,7 @@ button {
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding: 18px clamp(16px, 5vw, 64px);
+    padding: 10px clamp(14px, 3vw, 36px);
     background: rgba(255, 255, 255, 0.78);
     border-bottom: 2px solid rgba(118, 85, 232, 0.12);
 }
@@ -42,46 +47,47 @@ button {
 .brand {
     color: var(--ink);
     text-decoration: none;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 900;
 }
 
 .stats {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     flex-wrap: wrap;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
 }
 
 .stats span {
     background: white;
     border-radius: 999px;
-    padding: 8px 13px;
+    padding: 6px 10px;
     box-shadow: 0 3px 10px #26335b12;
 }
 
 .game-world {
-    width: min(100% - 28px, 760px);
+    width: min(100% - 24px, 760px);
     margin: 0 auto;
 }
 
 .hero {
     text-align: center;
-    padding: 35px 12px 18px;
+    padding: 12px 8px 4px;
     position: relative;
 }
 
 .eyebrow {
     color: #7655e8;
-    font-size: 0.76rem;
+    font-size: 0.68rem;
     font-weight: 900;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
+    margin: 4px 0 6px;
 }
 
 h1 {
-    font-size: clamp(2.2rem, 7vw, 3.7rem);
-    line-height: 1.05;
-    margin: 12px 0;
+    font-size: clamp(1.75rem, 5vw, 2.7rem);
+    line-height: 1.02;
+    margin: 6px 0;
     font-weight: 900;
 }
 
@@ -91,12 +97,13 @@ h1 span {
 
 .hero > p:not(.eyebrow) {
     max-width: 440px;
-    margin: 12px auto;
-    line-height: 1.6;
+    margin: 7px auto;
+    font-size: 0.9rem;
+    line-height: 1.35;
 }
 
 .island-art {
-    height: 125px;
+    height: clamp(48px, 9vh, 80px);
     position: relative;
     overflow: hidden;
 }
@@ -106,70 +113,70 @@ h1 span {
     bottom: -20px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 6rem;
+    font-size: clamp(3.3rem, 7vh, 5rem);
     filter: drop-shadow(0 8px 2px #26335b12);
 }
 
 .cloud {
     position: absolute;
-    font-size: 2rem;
+    font-size: 1.5rem;
 }
 
 .cloud-one {
-    top: 22px;
+    top: 8px;
     left: 20%;
 }
 
 .cloud-two {
-    top: 45px;
+    top: 18px;
     right: 19%;
 }
 
 .sparkle {
     position: absolute;
-    font-size: 1.4rem;
+    font-size: 1rem;
 }
 
 .sparkle-one {
-    top: 20px;
+    top: 8px;
     right: 31%;
 }
 
 .sparkle-two {
-    top: 54px;
+    top: 20px;
     left: 30%;
 }
 
 .game-panel {
     background: var(--paper);
-    padding: clamp(20px, 5vw, 36px);
-    border-radius: 28px;
+    padding: clamp(14px, 2.5vh, 24px);
+    border-radius: 22px;
     border: 3px solid white;
-    box-shadow: 0 12px 0 #7655e81b, 0 20px 45px #26335b15;
+    box-shadow: 0 8px 0 #7655e81b, 0 12px 30px #26335b15;
 }
 
 .level-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    font-size: 0.85rem;
+    gap: 8px;
+    font-size: 0.8rem;
     font-weight: 800;
 }
 
 .level-badge {
     background: #eee8ff;
     color: #6745d7;
-    padding: 7px 12px;
+    padding: 5px 10px;
     border-radius: 999px;
 }
 
 .progress-track {
-    height: 10px;
+    height: 7px;
     background: #eeeefa;
     border-radius: 99px;
     overflow: hidden;
-    margin: 17px 0 25px;
+    margin: 10px 0 14px;
 }
 
 .progress-fill {
@@ -185,55 +192,60 @@ h1 span {
 }
 
 .challenge-icon {
-    font-size: 2.8rem;
+    font-size: 2.1rem;
+    line-height: 1.1;
 }
 
 .category {
     color: #8b70e8;
     font-weight: 900;
-    font-size: 0.76rem;
-    letter-spacing: 2px;
-    margin-bottom: 8px;
+    font-size: 0.68rem;
+    letter-spacing: 1.5px;
+    margin: 5px 0;
 }
 
 h2 {
-    font-size: clamp(1.3rem, 4vw, 1.8rem);
-    margin: 10px 0;
+    font-size: clamp(1.1rem, 3vw, 1.55rem);
+    line-height: 1.2;
+    margin: 6px 0;
 }
 
 .instruction {
     color: #69718d;
-    line-height: 1.5;
+    line-height: 1.35;
+    font-size: 0.88rem;
+    margin: 6px 0;
 }
 
 .scrambled-word {
     color: #7655e8;
-    font-size: clamp(1.5rem, 6vw, 2.5rem);
+    font-size: clamp(1.35rem, 4vw, 2rem);
     font-weight: 900;
-    letter-spacing: 5px;
-    margin: 22px 0;
+    letter-spacing: 4px;
+    margin: 12px 0;
 }
 
 .answers {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    margin: 20px 0 12px;
+    gap: 8px;
+    margin: 12px 0 8px;
 }
 
 .answer-button {
     background: #f7f5ff;
     color: var(--ink);
     border: 2px solid #e6e0ff;
-    border-radius: 15px;
-    padding: 15px 10px;
+    border-radius: 12px;
+    padding: 10px 8px;
+    font-size: 0.9rem;
     font-weight: 800;
     cursor: pointer;
     transition: transform 0.15s, background 0.15s;
 }
 
 .answer-button:hover:not(:disabled) {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
     background: #eee8ff;
 }
 
@@ -259,21 +271,24 @@ h2 {
 }
 
 .feedback {
-    min-height: 28px;
+    min-height: 22px;
+    font-size: 0.85rem;
     font-weight: 800;
-    line-height: 1.5;
+    line-height: 1.35;
+    margin: 6px 0;
 }
 
 .main-button {
     border: none;
-    border-radius: 15px;
+    border-radius: 12px;
     background: linear-gradient(135deg, #7655e8, #9879ff);
     color: white;
-    padding: 15px 24px;
+    padding: 11px 20px;
     font-weight: 900;
-    box-shadow: 0 5px 0 #5638bc;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 0 #5638bc;
     cursor: pointer;
-    margin-top: 10px;
+    margin-top: 5px;
     transition: transform 0.15s;
 }
 
@@ -291,58 +306,153 @@ h2 {
 }
 
 .how-to-play {
-    padding: 26px 0;
+    padding: 12px 0;
     text-align: center;
 }
 
 .how-to-play h2 {
-    margin-bottom: 18px;
+    font-size: 1.05rem;
+    margin: 0 0 10px;
 }
 
 .mission-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    gap: 8px;
 }
 
 .mission-grid div {
     background: #ffffffa8;
     border: 1px solid #ffffff;
-    border-radius: 18px;
-    padding: 16px 8px;
+    border-radius: 14px;
+    padding: 9px 5px;
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    font-size: 1.7rem;
+    gap: 3px;
+    font-size: 1.3rem;
 }
 
 .mission-grid strong {
-    font-size: 0.95rem;
+    font-size: 0.82rem;
 }
 
 .mission-grid span {
     color: #69718d;
-    font-size: 0.75rem;
+    font-size: 0.68rem;
 }
 
 footer {
     text-align: center;
-    padding: 10px 10px 28px;
+    padding: 4px 8px 10px;
     color: #69718d;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
 }
 
-@media (max-width: 420px) {
+/* Short laptop screens */
+@media (min-width: 600px) and (max-height: 800px) {
+    .hero {
+        padding-top: 6px;
+    }
+
+    .island-art {
+        height: 42px;
+    }
+
+    .island {
+        font-size: 3.5rem;
+        bottom: -24px;
+    }
+
+    .how-to-play {
+        padding: 8px 0;
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
     .topbar {
-        align-items: flex-start;
-        flex-direction: column;
+        padding: 8px 12px;
+        gap: 6px;
+    }
+
+    .brand {
+        font-size: 1rem;
+    }
+
+    .stats {
+        gap: 5px;
+        font-size: 0.72rem;
+    }
+
+    .stats span {
+        padding: 5px 7px;
+    }
+
+    .game-world {
+        width: calc(100% - 20px);
+    }
+
+    .hero {
+        padding-top: 9px;
+    }
+
+    .hero > p:not(.eyebrow) {
+        font-size: 0.82rem;
+    }
+
+    .island-art {
+        height: 43px;
+    }
+
+    .island {
+        font-size: 3.3rem;
+        bottom: -23px;
+    }
+
+    .game-panel {
+        padding: 13px 12px;
+        border-radius: 18px;
     }
 
     .answers {
-        grid-template-columns: 1fr;
+        gap: 7px;
+    }
+
+    .answer-button {
+        padding: 10px 5px;
+        font-size: 0.82rem;
+        overflow-wrap: anywhere;
     }
 
     .mission-grid {
-        gap: 7px;
+        gap: 5px;
+    }
+
+    .mission-grid div {
+        padding: 7px 3px;
+    }
+}
+
+/* Very short screens: prioritize the active game */
+@media (max-height: 650px) {
+    .hero {
+        padding-top: 4px;
+    }
+
+    .hero .eyebrow,
+    .hero > p:not(.eyebrow),
+    .island-art,
+    .how-to-play,
+    footer {
+        display: none;
+    }
+
+    h1 {
+        font-size: 1.55rem;
+        margin: 4px 0 8px;
+    }
+
+    .game-panel {
+        margin-top: 8px;
     }
 }
