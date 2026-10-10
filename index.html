@@ -8,111 +8,84 @@
   <link rel="stylesheet" href="style.css">
   <script src="script.js" defer></script>
 </head>
-
 <body>
-  <header class="topbar">
-    <a class="brand" href="./">brain arcade<span>.</span></a>
+  <main class="app">
+    <header class="site-header">
+      <div class="brand-mark">BA</div>
+      <div>
+        <h1>Brain Arcade</h1>
+        <p class="tagline">A little challenge for your brain, every day.</p>
+      </div>
+    </header>
 
-    <div class="timer" aria-label="Time elapsed">
-      <span>TIME</span>
-      <strong id="timer">00:00</strong>
-    </div>
-  </header>
-
-  <main class="game-panel">
-
-    <div class="level-row" id="levelRow">
-      <span>DAILY CHALLENGE</span>
-      <span>1 PUZZLE</span>
-    </div>
-
-    <div class="progress-track" id="progressTrack">
-      <div id="progressBar"></div>
-    </div>
-
-    <!-- Welcome screen -->
-    <section id="welcomeScreen" class="welcome-screen">
-      <p class="category">YOUR DAILY BRAIN TEASER</p>
-
-      <h1>Ready to challenge your mind?</h1>
-
-      <p class="instruction">
-        One puzzle. Three attempts. How quickly can you solve it?
-      </p>
-
-      <button id="startButton" type="button">
-        Start today's puzzle
-      </button>
+    <section id="welcome-screen" class="panel welcome">
+      <p class="eyebrow">YOUR DAILY BRAIN BREAK</p>
+      <h2>Ready to challenge yourself?</h2>
+      <p>One puzzle. Three attempts. How quickly can you solve it?</p>
+      <button id="start-button" class="primary-button">Start today's puzzle</button>
+      <p id="welcome-error" class="error-message" role="alert"></p>
     </section>
 
-    <!-- Puzzle and completion screen -->
-    <section id="gameContent" hidden>
-      <div id="challengeIcon" class="challenge-icon"></div>
+    <section id="game-screen" class="panel" hidden>
+      <div class="puzzle-topline">
+        <span id="category" class="category-pill">Daily puzzle</span>
+        <span id="timer" class="timer">00:00</span>
+      </div>
 
-      <p id="category" class="category"></p>
+      <p class="eyebrow">TODAY'S CHALLENGE</p>
+      <h2 id="question">Loading today's puzzle…</h2>
 
-      <p id="completionTime" class="completion-time" hidden></p>
+      <form id="answer-form">
+        <label for="answer-input">Your answer</label>
+        <input
+          id="answer-input"
+          type="text"
+          placeholder="Type your answer here"
+          autocomplete="off"
+          required
+        >
+        <button id="submit-button" class="primary-button" type="submit">
+          Submit answer
+        </button>
+      </form>
 
-      <p id="completionMessage" class="completion-message" hidden></p>
-      
-      <h1 id="question"></h1>
+      <div class="game-meta">
+        <span id="attempts">Attempts remaining: 3</span>
+        <button id="hint-button" class="text-button" type="button">
+          Need a hint?
+        </button>
+      </div>
 
-      <p id="instruction" class="instruction"></p>
-
-      
+      <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+      <div id="hint-box" class="hint-box" hidden>
+        <strong>Hint</strong>
+        <p id="hint-text"></p>
+      </div>
     </section>
 
-    <!-- Answer feedback -->
-    <p id="feedback" class="feedback" role="status"
-       aria-live="polite" hidden></p>
-
-    <!-- Answer form -->
-    <form id="answerForm" class="answer-form" hidden>
-      <label for="answerInput">YOUR ANSWER</label>
-
-      <input
-        id="answerInput"
-        type="text"
-        placeholder="Type your answer..."
-        autocomplete="off"
-        spellcheck="false"
-        maxlength="100"
-        required
-      >
-
-      <p id="attemptsText" class="attempts-text">
-        3 attempts remaining
-      </p>
-
-      <button id="submitButton" type="submit">
-        Submit answer
-      </button>
-    </form>
-
-    <!-- Hints -->
-    <div id="hintArea" class="hint-area" hidden>
-      <button id="hintButton" class="text-button" type="button">
-        Need a hint?
-      </button>
-
-      <p id="hintText" class="hint-text" aria-live="polite"></p>
-    </div>
-
-    <!-- Solution -->
-    <section id="explanation" class="explanation" hidden>
-      <p class="explanation-eyebrow">THE SOLUTION</p>
-
-      <h2>Here's why</h2>
-
-      <p id="answerText" class="answer-reveal"></p>
-
-      <p id="explanationText"></p>
+    <section id="completion-screen" class="panel completion" hidden>
+      <div id="completion-icon" class="completion-icon">🏆</div>
+      <p id="completion-eyebrow" class="eyebrow">PUZZLE COMPLETE</p>
+      <h2 id="completion-title">Congratulations!</h2>
+      <p id="completion-message"></p>
+      <div class="result-time">
+        <span>Completion time</span>
+        <strong id="completion-time">00:00</strong>
+      </div>
+      <div class="solution">
+        <p class="eyebrow">TODAY'S PUZZLE</p>
+        <p id="completed-question" class="solution-question"></p>
+        <p class="answer-label">Answer</p>
+        <p id="completed-answer" class="solution-answer"></p>
+        <p class="answer-label">Explanation</p>
+        <p id="completed-explanation"></p>
+      </div>
+      <p class="closing-note">Thanks for playing Brain Arcade. See you for the next daily challenge!</p>
     </section>
 
+    <footer>
+      <p>Think curious. Think differently. 🎯</p>
+    </footer>
   </main>
-
-  <footer class="footer">
-    A little challenge for your mind.
-  </footer>
 </body>
 </html>
