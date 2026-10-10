@@ -1,485 +1,380 @@
 
-const questions = [
-  {
-    icon: "🃏",
-    category: "WORD CONNECTION",
-    question: "What has kings, queens, jacks and aces, but no royal palace?",
-    instruction: "Type your answer below. You have three attempts.",
-    answer: "Cards",
-    hints: [
-      "You might use them for a game at a table.",
-      "A deck usually contains 52 of them."
-    ],
-    explanation:
-      "A standard deck of playing cards contains kings, queens, jacks and aces. They are playing cards, not people living in a palace."
-  },
-  {
-    icon: "🧠",
-    category: "LOGIC",
-    question: "Alex is older than Ben. Ben is older than Sam. Who is the youngest?",
-    instruction: "Read the relationships carefully.",
-    answer: "Sam",
-    hints: [
-      "Compare Ben's age with Sam's age first.",
-      "The youngest person is younger than both others."
-    ],
-    explanation:
-      "Alex is older than Ben, and Ben is older than Sam. Therefore, Sam is the youngest."
-  },
-  {
-    icon: "👨‍👩‍👧‍👦",
-    category: "LATERAL THINKING",
-    question: "A family has four daughters. Each daughter has exactly one brother. How many children are there in the family?",
-    instruction: "Think about whether each daughter needs a different brother.",
-    answer: "5",
-    hints: [
-      "The brother can be shared by all four daughters.",
-      "Count the daughters and the brother."
-    ],
-    explanation:
-      "There are four daughters and one brother. All four daughters share the same brother, so there are five children in total."
-  },
-  {
-    icon: "🔢",
-    category: "NUMBER PATTERN",
-    question: "What number comes next in this sequence?",
-    instruction: "2, 6, 12, 20, 30, ?",
-    answer: "42",
-    hints: [
-      "Look at the differences between consecutive numbers.",
-      "The differences are 4, 6, 8 and 10. What comes next?"
-    ],
-    explanation:
-      "The differences increase by 2 each time: +4, +6, +8, +10 and then +12. Therefore, 30 + 12 = 42."
-  },
-  {
-    icon: "🔤",
-    category: "WORDPLAY",
-    question: "What word becomes shorter when you add two letters to it?",
-    instruction: "The answer is a word, not a measurement.",
-    answer: "Short",
-    hints: [
-      "The word describes length.",
-      "Try adding the letters E and R."
-    ],
-    explanation:
-      "Adding E and R to SHORT creates SHORTER. The word gets longer, but its meaning describes something shorter."
-  },
-  {
-    icon: "🔐",
-    category: "CODE BREAKER",
-    question: "Using A = 1, B = 2, C = 3 and so on, how would you write DOG as a number code?",
-    instruction: "Enter the three numbers in order, separated by hyphens.",
-    answer: "4-15-7",
-    hints: [
-      "Find the position of each letter in the alphabet.",
-      "D is 4, O is 15, and G is 7."
-    ],
-    explanation:
-      "D is the 4th letter, O is the 15th letter, and G is the 7th letter. The code is 4-15-7."
-  },
-  {
-    icon: "🪄",
-    category: "WORDPLAY",
-    question: "Which word becomes EVEN when you remove its first letter?",
-    instruction: "Look for a number written as a word.",
-    answer: "Seven",
-    hints: [
-      "The word has five letters.",
-      "Remove the first letter S."
-    ],
-    explanation:
-      "SEVEN becomes EVEN when its first letter, S, is removed."
-  }
-];
-
-// ========================================
-// HTML ELEMENTS
-// ========================================
-
-const timer = document.getElementById("timer");
-const levelRow = document.getElementById("levelRow");
-const progressTrack = document.getElementById("progressTrack");
-const progressBar = document.getElementById("progressBar");
-
-const welcomeScreen = document.getElementById("welcomeScreen");
-const gameContent = document.getElementById("gameContent");
-
-const challengeIcon = document.getElementById("challengeIcon");
-const category = document.getElementById("category");
-const completionTime = document.getElementById("completionTime");
-const completionMessage = document.getElementById("completionMessage");
-const questionTitle = document.getElementById("question");
-const instruction = document.getElementById("instruction");
-
-const feedback = document.getElementById("feedback");
-const answerForm = document.getElementById("answerForm");
-const answerInput = document.getElementById("answerInput");
-const submitButton = document.getElementById("submitButton");
-const attemptsText = document.getElementById("attemptsText");
-
-const startButton = document.getElementById("startButton");
-
-const hintArea = document.getElementById("hintArea");
-const hintButton = document.getElementById("hintButton");
-const hintText = document.getElementById("hintText");
-
-const explanation = document.getElementById("explanation");
-const answerText = document.getElementById("answerText");
-const explanationText = document.getElementById("explanationText");
-
-// ========================================
-// GAME STATE
-// ========================================
-
-let dailyQuestion;
-let attemptsUsed = 0;
-let hintsUsed = 0;
-let elapsedSeconds = 0;
-let gameStarted = false;
-let gameCompleted = false;
-let timerInterval = null;
-
-// ========================================
-// SELECT DAILY QUESTION
-// ========================================
-
-function getDailyQuestion() {
-  const startDate = Date.UTC(2026, 0, 1);
-  const today = new Date();
-
-  const todayUTC = Date.UTC(
-    today.getUTCFullYear(),
-    today.getUTCMonth(),
-    today.getUTCDate()
-  );
-
-  const daysPassed = Math.floor(
-    (todayUTC - startDate) / 86400000
-  );
-
-  const index =
-    ((daysPassed % questions.length) + questions.length) %
-    questions.length;
-
-  return questions[index];
+:root {
+  --ink: #20243a;
+  --muted: #6d7285;
+  --accent: #6558d3;
+  --accent-dark: #5144ba;
+  --paper: #ffffff;
+  --background: #f4f3fb;
+  --border: #e5e3f0;
+  --success: #18794e;
+  --error: #b42318;
 }
 
-// ========================================
-// TIMER
-// ========================================
-
-function formatTime(totalSeconds) {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-
-  return (
-    String(minutes).padStart(2, "0") +
-    ":" +
-    String(seconds).padStart(2, "0")
-  );
+* {
+  box-sizing: border-box;
 }
 
-function stopTimer() {
-  if (timerInterval !== null) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 32px 16px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 10% 0%, #e7e3ff 0, transparent 36%),
+    var(--background);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-function startTimer() {
-  stopTimer();
-
-  timerInterval = setInterval(() => {
-    if (!gameStarted || gameCompleted) {
-      stopTimer();
-      return;
-    }
-
-    elapsedSeconds++;
-    timer.textContent = formatTime(elapsedSeconds);
-  }, 1000);
+button,
+input {
+  font: inherit;
 }
 
-// ========================================
-// ANSWER CHECKING
-// ========================================
-
-function normalizeAnswer(value) {
-  return String(value)
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
+button {
+  cursor: pointer;
 }
 
-function answersMatch(userAnswer, correctAnswer) {
-  return normalizeAnswer(userAnswer) ===
-    normalizeAnswer(correctAnswer);
+button:disabled,
+input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
-// ========================================
-// LOAD / RESET PUZZLE
-// ========================================
-
-function loadPuzzle() {
-  stopTimer();
-
-  dailyQuestion = getDailyQuestion();
-
-  attemptsUsed = 0;
-  hintsUsed = 0;
-  elapsedSeconds = 0;
-
-  gameStarted = false;
-  gameCompleted = false;
-
-  timer.textContent = "00:00";
-
-  // Welcome screen is the only main screen shown initially.
-  welcomeScreen.hidden = false;
-  gameContent.hidden = true;
-
-  answerForm.hidden = true;
-  hintArea.hidden = true;
-  feedback.hidden = true;
-  explanation.hidden = true;
-
-  levelRow.hidden = false;
-  progressTrack.hidden = false;
-  progressBar.style.width = "0%";
-
-  // Prepare today's question.
-  challengeIcon.textContent = dailyQuestion.icon;
-  category.textContent = dailyQuestion.category;
-  questionTitle.textContent = dailyQuestion.question;
-  instruction.textContent = dailyQuestion.instruction;
-
-  // Reset completion content.
-  completionTime.hidden = true;
-  completionTime.textContent = "";
-
-  completionMessage.hidden = true;
-  completionMessage.textContent = "";
-
-  challengeIcon.classList.remove("completed-icon");
-  category.classList.remove(
-    "completion-heading",
-    "success",
-    "encouragement"
-  );
-  questionTitle.classList.remove("completed-question");
-
-  // Reset input.
-  answerInput.value = "";
-  answerInput.disabled = false;
-  submitButton.disabled = false;
-
-  attemptsText.textContent = "3 attempts remaining";
-
-  // Reset feedback.
-  feedback.textContent = "";
-  feedback.className = "feedback";
-
-  // Reset hints.
-  hintText.textContent = "";
-  hintButton.disabled = false;
-  hintButton.textContent = "Need a hint?";
-
-  // Reset explanation.
-  answerText.textContent = "";
-  explanationText.textContent = "";
+.app {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
-// ========================================
-// START GAME
-// ========================================
-
-function startGame() {
-  if (gameStarted || gameCompleted) {
-    return;
-  }
-
-  gameStarted = true;
-
-  welcomeScreen.hidden = true;
-  gameContent.hidden = false;
-
-  answerForm.hidden = false;
-  hintArea.hidden = false;
-  feedback.hidden = false;
-
-  startButton.hidden = true;
-
-  startTimer();
-  answerInput.focus();
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 12px 0 28px;
 }
 
-// ========================================
-// SUBMIT ANSWER
-// ========================================
-
-answerForm.addEventListener("submit", function (event) {
-  event.preventDefault();
-
-  if (!gameStarted || gameCompleted) {
-    return;
-  }
-
-  const userAnswer = answerInput.value.trim();
-
-  if (!userAnswer) {
-    feedback.textContent = "Please enter an answer first.";
-    feedback.className = "feedback incorrect";
-    return;
-  }
-
-  attemptsUsed++;
-
-  const attemptsRemaining = 3 - attemptsUsed;
-
-  progressBar.style.width =
-    `${(attemptsUsed / 3) * 100}%`;
-
-  if (answersMatch(userAnswer, dailyQuestion.answer)) {
-    completePuzzle("solved");
-    return;
-  }
-
-  if (attemptsRemaining > 0) {
-    feedback.textContent =
-      `Not quite. Try again — ${attemptsRemaining} ` +
-      (attemptsRemaining === 1 ? "attempt" : "attempts") +
-      " remaining.";
-
-    feedback.className = "feedback incorrect";
-    attemptsText.textContent =
-      `${attemptsRemaining} attempts remaining`;
-
-    answerInput.value = "";
-    answerInput.focus();
-
-    return;
-  }
-
-  // All three attempts were incorrect.
-  completePuzzle("not-solved");
-});
-
-// ========================================
-// HINTS
-// ========================================
-
-function showHint() {
-  if (!gameStarted || gameCompleted) {
-    return;
-  }
-
-  if (hintsUsed >= dailyQuestion.hints.length) {
-    return;
-  }
-
-  hintText.textContent =
-    `Hint ${hintsUsed + 1}: ${dailyQuestion.hints[hintsUsed]}`;
-
-  hintsUsed++;
-
-  if (hintsUsed >= dailyQuestion.hints.length) {
-    hintButton.disabled = true;
-    hintButton.textContent = "No more hints";
-  } else {
-    hintButton.textContent = "Need another hint?";
-  }
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  background: var(--accent);
+  color: white;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -1px;
 }
 
-// ========================================
-// COMPLETION SCREEN
-// ========================================
-
-function completePuzzle(result) {
-  if (gameCompleted) {
-    return;
-  }
-
-  // Lock the game and stop the timer.
-  gameCompleted = true;
-  gameStarted = false;
-  stopTimer();
-
-  // Hide every gameplay control.
-  welcomeScreen.hidden = true;
-  answerForm.hidden = true;
-  hintArea.hidden = true;
-  feedback.hidden = true;
-
-  // Hide progress indicators.
-  levelRow.hidden = true;
-  progressTrack.hidden = true;
-
-  // IMPORTANT: show the completion content.
-  gameContent.hidden = false;
-
-  // Remove previous completion styling.
-  category.classList.remove("success", "encouragement");
-  category.classList.add("completion-heading");
-
-  questionTitle.classList.add("completed-question");
-  challengeIcon.classList.add("completed-icon");
-
-  // Show the question again on the completion page.
-  questionTitle.textContent = dailyQuestion.question;
-
-  // Reveal the correct answer and explanation in both outcomes.
-  answerText.textContent = `Answer: ${dailyQuestion.answer}`;
-  explanationText.textContent = dailyQuestion.explanation;
-  explanation.hidden = false;
-
-  // CORRECT ANSWER
-  if (result === "solved") {
-    challengeIcon.textContent = "🏆";
-
-    category.textContent = "CONGRATULATIONS!";
-    category.classList.add("success");
-
-    completionMessage.textContent =
-      "Brilliant work! You cracked today's brain teaser.";
-
-    completionTime.textContent =
-      `You solved the puzzle in ${formatTime(elapsedSeconds)}.`;
-
-    completionTime.hidden = false;
-
-    completionMessage.hidden = true;
-    completionMessage.textContent = "";
-
-    
-
-  } else {
-    // THREE INCORRECT ATTEMPTS
-    challengeIcon.textContent = "💪";
-
-    category.textContent = "DON'T BE DISHEARTENED!";
-    category.classList.add("encouragement");
-
-    completionTime.hidden = true;
-    completionTime.textContent = "";
-
-    completionMessage.textContent =
-      "Every attempt is a chance to learn something new. " +
-      "Take a look at the solution, keep your curiosity alive, " +
-      "and come back ready for another challenge.";
-
-    completionMessage.hidden = false;
-
-    //instruction.textContent =
-    //  "You gave it a go. Here's the answer and how to solve it.";
-  }
+h1,
+h2,
+p {
+  margin-top: 0;
 }
 
-// ========================================
-// EVENT LISTENERS
-// ========================================
+h1 {
+  margin-bottom: 4px;
+  font-size: 26px;
+  letter-spacing: -0.8px;
+}
 
-startButton.addEventListener("click", startGame);
-hintButton.addEventListener("click", showHint);
+.tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
 
-// Initialize the welcome screen.
-loadPuzzle();
+.panel {
+  padding: clamp(24px, 6vw, 42px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--paper);
+  box-shadow: 0 16px 50px rgba(37, 32, 84, 0.07);
+}
+
+.welcome {
+  padding-top: 56px;
+  padding-bottom: 56px;
+  text-align: center;
+}
+
+.eyebrow {
+  margin-bottom: 12px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+}
+
+h2 {
+  margin-bottom: 14px;
+  font-size: clamp(24px, 5vw, 34px);
+  line-height: 1.25;
+  letter-spacing: -0.8px;
+}
+
+.welcome > p:not(.eyebrow) {
+  max-width: 420px;
+  margin: 0 auto 26px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.primary-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+  padding: 13px 22px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.primary-button:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+}
+
+#start-button {
+  width: 100%;
+  max-width: 300px;
+}
+
+.puzzle-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 34px;
+}
+
+.category-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #efedff;
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.timer {
+  font-variant-numeric: tabular-nums;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+#question {
+  margin-bottom: 28px;
+  white-space: pre-line;
+}
+
+#answer-form label {
+  display: block;
+  margin-bottom: 9px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+#answer-input {
+  width: 100%;
+  min-height: 50px;
+  margin-bottom: 12px;
+  padding: 13px 15px;
+  border: 1px solid #d9d7e6;
+  border-radius: 12px;
+  outline: none;
+}
+
+#answer-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(101, 88, 211, 0.12);
+}
+
+#submit-button {
+  width: 100%;
+}
+
+.game-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.text-button {
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.text-button:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
+
+.feedback {
+  min-height: 22px;
+  margin: 18px 0 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.feedback.success {
+  color: var(--success);
+}
+
+.feedback.error {
+  color: var(--error);
+}
+
+.hint-box {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e8e2bd;
+  border-radius: 12px;
+  background: #fffbed;
+  line-height: 1.6;
+}
+
+.hint-box strong {
+  font-size: 13px;
+}
+
+.hint-box p {
+  margin: 6px 0 0;
+}
+
+.completion {
+  text-align: center;
+}
+
+.completion-icon {
+  margin-bottom: 14px;
+  font-size: 52px;
+}
+
+#completion-message {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.result-time {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 26px 0;
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #faf9ff;
+  text-align: left;
+}
+
+.result-time span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.result-time strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 19px;
+}
+
+.solution {
+  padding: 24px;
+  border-radius: 16px;
+  background: #f8f7fc;
+  text-align: left;
+}
+
+.solution-question {
+  margin-bottom: 22px;
+  font-weight: 650;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.answer-label {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.solution-answer {
+  margin-bottom: 20px;
+  color: var(--success);
+  font-size: 21px;
+  font-weight: 800;
+}
+
+#completed-explanation {
+  margin-bottom: 0;
+  line-height: 1.7;
+}
+
+.closing-note {
+  margin: 24px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.error-message {
+  margin: 16px 0 0 !important;
+  color: var(--error) !important;
+  font-size: 13px;
+}
+
+footer {
+  padding: 24px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 20px 12px;
+  }
+
+  .site-header {
+    margin-top: 4px;
+  }
+
+  h1 {
+    font-size: 23px;
+  }
+
+  .panel {
+    border-radius: 18px;
+  }
+
+  .welcome {
+    padding-top: 42px;
+    padding-bottom: 42px;
+  }
+
+  .solution {
+    padding: 18px;
+  }
+}
