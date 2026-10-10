@@ -5,7 +5,7 @@
   Never add a service-role or secret key to this file.
 */
 
-const SUPABASE_URL = "https://medrzrkfuvufrqooegzl.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://medrzrkfuvufrqooegzl.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_QiA46lLVhKe2tk0m5_yJIA_kKmnv2WV";
 const FUNCTION_NAME = "brain-arcade";
 
