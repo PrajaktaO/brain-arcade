@@ -1,380 +1,278 @@
 
-:root {
-  --ink: #20243a;
-  --muted: #6d7285;
-  --accent: #6558d3;
-  --accent-dark: #5144ba;
-  --paper: #ffffff;
-  --background: #f4f3fb;
-  --border: #e5e3f0;
-  --success: #18794e;
-  --error: #b42318;
+/*
+  Brain Arcade frontend
+  All puzzle answers are checked by the Supabase Edge Function.
+  Never add a service-role or secret key to this file.
+*/
+
+const SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "YOUR_SUPABASE_PUBLISHABLE_KEY";
+const FUNCTION_NAME = "brain-arcade";
+
+const $ = (id) => document.getElementById(id);
+
+const welcomeScreen = $("welcome-screen");
+const gameScreen = $("game-screen");
+const completionScreen = $("completion-screen");
+
+let sessionId = localStorage.getItem("brainArcadeSessionId");
+let currentQuestion = "";
+let elapsedSeconds = 0;
+let timerStartedAt = 0;
+let timerInterval = null;
+let gameCompleted = false;
+
+function formatTime(totalSeconds) {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
 }
 
-* {
-  box-sizing: border-box;
+function startVisibleTimer(serverElapsedSeconds = 0) {
+  clearInterval(timerInterval);
+
+  elapsedSeconds = serverElapsedSeconds;
+  timerStartedAt = Date.now();
+
+  const update = () => {
+    const total = elapsedSeconds +
+      Math.floor((Date.now() - timerStartedAt) / 1000);
+
+    $("timer").textContent = formatTime(total);
+  };
+
+  update();
+  timerInterval = setInterval(update, 1000);
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  padding: 32px 16px;
-  color: var(--ink);
-  background:
-    radial-gradient(circle at 10% 0%, #e7e3ff 0, transparent 36%),
-    var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
+function stopVisibleTimer(serverElapsedSeconds) {
+  clearInterval(timerInterval);
+  timerInterval = null;
 
-button,
-input {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-button:disabled,
-input:disabled {
-  cursor: not-allowed;
-  opacity: 0.65;
-}
-
-.app {
-  width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
-}
-
-.site-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: 12px 0 28px;
-}
-
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  flex-shrink: 0;
-  border-radius: 16px;
-  background: var(--accent);
-  color: white;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -1px;
-}
-
-h1,
-h2,
-p {
-  margin-top: 0;
-}
-
-h1 {
-  margin-bottom: 4px;
-  font-size: 26px;
-  letter-spacing: -0.8px;
-}
-
-.tagline {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.panel {
-  padding: clamp(24px, 6vw, 42px);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  background: var(--paper);
-  box-shadow: 0 16px 50px rgba(37, 32, 84, 0.07);
-}
-
-.welcome {
-  padding-top: 56px;
-  padding-bottom: 56px;
-  text-align: center;
-}
-
-.eyebrow {
-  margin-bottom: 12px;
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.8px;
-}
-
-h2 {
-  margin-bottom: 14px;
-  font-size: clamp(24px, 5vw, 34px);
-  line-height: 1.25;
-  letter-spacing: -0.8px;
-}
-
-.welcome > p:not(.eyebrow) {
-  max-width: 420px;
-  margin: 0 auto 26px;
-  color: var(--muted);
-  line-height: 1.7;
-}
-
-.primary-button {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 48px;
-  padding: 13px 22px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--accent);
-  color: white;
-  font-weight: 700;
-  transition: background 0.2s, transform 0.2s;
-}
-
-.primary-button:hover {
-  background: var(--accent-dark);
-  transform: translateY(-1px);
-}
-
-#start-button {
-  width: 100%;
-  max-width: 300px;
-}
-
-.puzzle-topline {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 34px;
-}
-
-.category-pill {
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: #efedff;
-  color: var(--accent-dark);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.timer {
-  font-variant-numeric: tabular-nums;
-  font-size: 17px;
-  font-weight: 800;
-}
-
-#question {
-  margin-bottom: 28px;
-  white-space: pre-line;
-}
-
-#answer-form label {
-  display: block;
-  margin-bottom: 9px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-#answer-input {
-  width: 100%;
-  min-height: 50px;
-  margin-bottom: 12px;
-  padding: 13px 15px;
-  border: 1px solid #d9d7e6;
-  border-radius: 12px;
-  outline: none;
-}
-
-#answer-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(101, 88, 211, 0.12);
-}
-
-#submit-button {
-  width: 100%;
-}
-
-.game-meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-top: 20px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.text-button {
-  padding: 5px 0;
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  font-weight: 700;
-}
-
-.text-button:hover {
-  color: var(--accent-dark);
-  text-decoration: underline;
-}
-
-.feedback {
-  min-height: 22px;
-  margin: 18px 0 0;
-  font-size: 14px;
-  font-weight: 650;
-}
-
-.feedback.success {
-  color: var(--success);
-}
-
-.feedback.error {
-  color: var(--error);
-}
-
-.hint-box {
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid #e8e2bd;
-  border-radius: 12px;
-  background: #fffbed;
-  line-height: 1.6;
-}
-
-.hint-box strong {
-  font-size: 13px;
-}
-
-.hint-box p {
-  margin: 6px 0 0;
-}
-
-.completion {
-  text-align: center;
-}
-
-.completion-icon {
-  margin-bottom: 14px;
-  font-size: 52px;
-}
-
-#completion-message {
-  color: var(--muted);
-  line-height: 1.7;
-}
-
-.result-time {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin: 26px 0;
-  padding: 17px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: #faf9ff;
-  text-align: left;
-}
-
-.result-time span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.result-time strong {
-  font-variant-numeric: tabular-nums;
-  font-size: 19px;
-}
-
-.solution {
-  padding: 24px;
-  border-radius: 16px;
-  background: #f8f7fc;
-  text-align: left;
-}
-
-.solution-question {
-  margin-bottom: 22px;
-  font-weight: 650;
-  line-height: 1.7;
-  white-space: pre-line;
-}
-
-.answer-label {
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
-
-.solution-answer {
-  margin-bottom: 20px;
-  color: var(--success);
-  font-size: 21px;
-  font-weight: 800;
-}
-
-#completed-explanation {
-  margin-bottom: 0;
-  line-height: 1.7;
-}
-
-.closing-note {
-  margin: 24px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.error-message {
-  margin: 16px 0 0 !important;
-  color: var(--error) !important;
-  font-size: 13px;
-}
-
-footer {
-  padding: 24px 0 8px;
-  color: var(--muted);
-  font-size: 12px;
-  text-align: center;
-}
-
-[hidden] {
-  display: none !important;
-}
-
-@media (max-width: 480px) {
-  body {
-    padding: 20px 12px;
+  if (Number.isFinite(serverElapsedSeconds)) {
+    elapsedSeconds = serverElapsedSeconds;
+  } else {
+    elapsedSeconds += Math.floor((Date.now() - timerStartedAt) / 1000);
   }
 
-  .site-header {
-    margin-top: 4px;
+  $("timer").textContent = formatTime(elapsedSeconds);
+}
+
+async function callGameFunction(action, extra = {}) {
+  const response = await fetch(
+    `${SUPABASE_URL}/functions/v1/${FUNCTION_NAME}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_PUBLISHABLE_KEY
+      },
+      body: JSON.stringify({
+        action,
+        sessionId,
+        ...extra
+      })
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data.error || "Unable to contact Brain Arcade.");
+    error.status = response.status;
+    throw error;
   }
 
-  h1 {
-    font-size: 23px;
-  }
+  return data;
+}
 
-  .panel {
-    border-radius: 18px;
-  }
+function showError(message, target = "welcome-error") {
+  $(target).textContent = message;
+}
 
-  .welcome {
-    padding-top: 42px;
-    padding-bottom: 42px;
-  }
+function clearFeedback() {
+  $("feedback").textContent = "";
+  $("feedback").className = "feedback";
+}
 
-  .solution {
-    padding: 18px;
+function updateAttempts(data) {
+  const remaining = Math.max(0, 3 - data.attempts);
+  $("attempts").textContent = `Attempts remaining: ${remaining}`;
+}
+
+function displayGame(data) {
+  currentQuestion = data.question;
+  gameCompleted = Boolean(data.completed);
+
+  $("category").textContent = data.category;
+  $("question").textContent = data.question;
+  updateAttempts(data);
+
+  $("hint-box").hidden = true;
+  $("hint-text").textContent = "";
+  $("answer-input").value = "";
+  $("answer-input").disabled = gameCompleted;
+  $("submit-button").disabled = gameCompleted;
+  $("hint-button").disabled = gameCompleted;
+  clearFeedback();
+
+  welcomeScreen.hidden = true;
+  completionScreen.hidden = true;
+  gameScreen.hidden = false;
+
+  startVisibleTimer(data.elapsedSeconds || 0);
+
+  if (gameCompleted) {
+    renderCompletion(data);
+  } else {
+    $("answer-input").focus();
   }
 }
+
+function renderCompletion(data) {
+  gameCompleted = true;
+  stopVisibleTimer(data.elapsedSeconds);
+
+  gameScreen.hidden = true;
+  completionScreen.hidden = false;
+
+  $("completed-question").textContent = data.question || currentQuestion;
+  $("completed-answer").textContent = data.answer || "Answer unavailable";
+  $("completed-explanation").textContent =
+    data.explanation || "No explanation is available.";
+
+  $("completion-time").textContent = formatTime(data.elapsedSeconds || 0);
+
+  if (data.solved) {
+    $("completion-icon").textContent = "🏆";
+    $("completion-eyebrow").textContent = "PUZZLE SOLVED";
+    $("completion-title").textContent = "Congratulations!";
+    $("completion-message").textContent =
+      "Brilliant work! You solved today's puzzle. Come back tomorrow for another challenge.";
+  } else {
+    $("completion-icon").textContent = "💪";
+    $("completion-eyebrow").textContent = "PUZZLE COMPLETE";
+    $("completion-title").textContent = "Don't be disheartened!";
+    $("completion-message").textContent =
+      "Some puzzles take a different way of thinking. Keep practising, stay curious, and try again with tomorrow's challenge.";
+  }
+}
+
+async function startGame() {
+  const button = $("start-button");
+  button.disabled = true;
+  button.textContent = "Loading puzzle…";
+  showError("");
+
+  try {
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      localStorage.setItem("brainArcadeSessionId", sessionId);
+    }
+
+    let data;
+
+    try {
+      data = await callGameFunction("start");
+    } catch (error) {
+      // The saved session may belong to yesterday.
+      if (error.status !== 409) throw error;
+
+      sessionId = crypto.randomUUID();
+      localStorage.setItem("brainArcadeSessionId", sessionId);
+      data = await callGameFunction("start");
+    }
+
+    displayGame(data);
+  } catch (error) {
+    console.error(error);
+    showError(
+      `${error.message} Check your Supabase URL, publishable key and Edge Function deployment.`
+    );
+  } finally {
+    button.disabled = false;
+    button.textContent = "Start today's puzzle";
+  }
+}
+
+async function submitAnswer(event) {
+  event.preventDefault();
+
+  if (gameCompleted) return;
+
+  const input = $("answer-input");
+  const answer = input.value.trim();
+
+  if (!answer) {
+    input.focus();
+    return;
+  }
+
+  $("submit-button").disabled = true;
+  $("hint-button").disabled = true;
+  clearFeedback();
+  $("feedback").textContent = "Checking your answer…";
+
+  try {
+    const data = await callGameFunction("guess", { answer });
+
+    updateAttempts(data);
+    startVisibleTimer(data.elapsedSeconds || 0);
+
+    if (data.completed) {
+      renderCompletion(data);
+      return;
+    }
+
+    $("feedback").textContent = data.correct
+      ? "Correct!"
+      : data.message || "Not quite. Try again.";
+
+    $("feedback").className =
+      `feedback ${data.correct ? "success" : "error"}`;
+
+    input.value = "";
+    input.focus();
+  } catch (error) {
+    console.error(error);
+    $("feedback").textContent =
+      `${error.message} Your answer may not have been recorded.`;
+    $("feedback").className = "feedback error";
+  } finally {
+    if (!gameCompleted) {
+      $("submit-button").disabled = false;
+      $("hint-button").disabled = false;
+    }
+  }
+}
+
+async function requestHint() {
+  if (gameCompleted) return;
+
+  $("hint-button").disabled = true;
+  $("feedback").textContent = "";
+
+  try {
+    const data = await callGameFunction("hint");
+
+    updateAttempts(data);
+
+    $("hint-box").hidden = false;
+    $("hint-text").textContent =
+      data.hint || data.message || "No more hints are available.";
+
+    startVisibleTimer(data.elapsedSeconds || 0);
+  } catch (error) {
+    console.error(error);
+    $("feedback").textContent = error.message;
+    $("feedback").className = "feedback error";
+  } finally {
+    if (!gameCompleted) $("hint-button").disabled = false;
+  }
+}
+
+$("start-button").addEventListener("click", startGame);
+$("answer-form").addEventListener("submit", submitAnswer);
+$("hint-button").addEventListener("click", requestHint);
