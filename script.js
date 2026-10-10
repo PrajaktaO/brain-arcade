@@ -152,8 +152,8 @@ function renderCompletion(data) {
     $("completion-message").textContent =
       "Brilliant work! You solved today's puzzle. Come back tomorrow for another challenge.";
   } else {
-    $("completion-icon").textContent = "💪";
-    $("completion-eyebrow").textContent = "PUZZLE COMPLETE";
+    $("completion-icon").textContent = "💔";
+    $("completion-eyebrow").textContent = "YOUR ATTEMPTS ARE OVER";
     $("completion-title").textContent = "Don't be disheartened!";
     $("completion-message").textContent =
       "Some puzzles take a different way of thinking. Keep practising, stay curious, and try again with tomorrow's challenge.";
