@@ -1,239 +1,485 @@
 
 const questions = [
-    {
-        type: "word",
-        icon: "🔤",
-        category: "WORD SCRAMBLE",
-        question: "Crack the scrambled word!",
-        instruction: "A large striped cat that lives in the wild.",
-        scrambled: "G I T E R",
-        options: ["TIGER", "GREAT", "GRITE", "TRIBE"],
-        answer: "TIGER"
-    },
-    {
-        type: "trivia",
-        icon: "🌍",
-        category: "TRIVIA TEMPLE",
-        question: "Which planet is known as the Red Planet?",
-        instruction: "Think about the colour of its dusty surface!",
-        options: ["Venus", "Mars", "Jupiter", "Saturn"],
-        answer: "Mars"
-    },
-    {
-        type: "riddle",
-        icon: "🗝️",
-        category: "RIDDLE CAVE",
-        question: "I have keys but open no locks. What am I?",
-        instruction: "You might use me to play your favourite song.",
-        options: ["A treasure chest", "A keyboard", "A map", "A clock"],
-        answer: "A keyboard"
-    },
-    {
-        type: "emoji",
-        icon: "🚀",
-        category: "EMOJI ISLAND",
-        question: "Decode these emojis!",
-        instruction: "🌙 + ⭐",
-        options: ["Sunflower", "Night sky", "Rainbow", "Ocean"],
-        answer: "Night sky"
-    },
-    {
-        type: "odd",
-        icon: "🦊",
-        category: "ODD-ONE-OUT FOREST",
-        question: "Which one does not belong?",
-        instruction: "🐶   🐱   🐰   🥕",
-        options: ["Dog", "Cat", "Rabbit", "Carrot"],
-        answer: "Carrot"
-    }
+  {
+    icon: "🃏",
+    category: "WORD CONNECTION",
+    question: "What has kings, queens, jacks and aces, but no royal palace?",
+    instruction: "Type your answer below. You have three attempts.",
+    answer: "Cards",
+    hints: [
+      "You might use them for a game at a table.",
+      "A deck usually contains 52 of them."
+    ],
+    explanation:
+      "A standard deck of playing cards contains kings, queens, jacks and aces. They are playing cards, not people living in a palace."
+  },
+  {
+    icon: "🧠",
+    category: "LOGIC",
+    question: "Alex is older than Ben. Ben is older than Sam. Who is the youngest?",
+    instruction: "Read the relationships carefully.",
+    answer: "Sam",
+    hints: [
+      "Compare Ben's age with Sam's age first.",
+      "The youngest person is younger than both others."
+    ],
+    explanation:
+      "Alex is older than Ben, and Ben is older than Sam. Therefore, Sam is the youngest."
+  },
+  {
+    icon: "👨‍👩‍👧‍👦",
+    category: "LATERAL THINKING",
+    question: "A family has four daughters. Each daughter has exactly one brother. How many children are there in the family?",
+    instruction: "Think about whether each daughter needs a different brother.",
+    answer: "5",
+    hints: [
+      "The brother can be shared by all four daughters.",
+      "Count the daughters and the brother."
+    ],
+    explanation:
+      "There are four daughters and one brother. All four daughters share the same brother, so there are five children in total."
+  },
+  {
+    icon: "🔢",
+    category: "NUMBER PATTERN",
+    question: "What number comes next in this sequence?",
+    instruction: "2, 6, 12, 20, 30, ?",
+    answer: "42",
+    hints: [
+      "Look at the differences between consecutive numbers.",
+      "The differences are 4, 6, 8 and 10. What comes next?"
+    ],
+    explanation:
+      "The differences increase by 2 each time: +4, +6, +8, +10 and then +12. Therefore, 30 + 12 = 42."
+  },
+  {
+    icon: "🔤",
+    category: "WORDPLAY",
+    question: "What word becomes shorter when you add two letters to it?",
+    instruction: "The answer is a word, not a measurement.",
+    answer: "Short",
+    hints: [
+      "The word describes length.",
+      "Try adding the letters E and R."
+    ],
+    explanation:
+      "Adding E and R to SHORT creates SHORTER. The word gets longer, but its meaning describes something shorter."
+  },
+  {
+    icon: "🔐",
+    category: "CODE BREAKER",
+    question: "Using A = 1, B = 2, C = 3 and so on, how would you write DOG as a number code?",
+    instruction: "Enter the three numbers in order, separated by hyphens.",
+    answer: "4-15-7",
+    hints: [
+      "Find the position of each letter in the alphabet.",
+      "D is 4, O is 15, and G is 7."
+    ],
+    explanation:
+      "D is the 4th letter, O is the 15th letter, and G is the 7th letter. The code is 4-15-7."
+  },
+  {
+    icon: "🪄",
+    category: "WORDPLAY",
+    question: "Which word becomes EVEN when you remove its first letter?",
+    instruction: "Look for a number written as a word.",
+    answer: "Seven",
+    hints: [
+      "The word has five letters.",
+      "Remove the first letter S."
+    ],
+    explanation:
+      "SEVEN becomes EVEN when its first letter, S, is removed."
+  }
 ];
 
-let roundQuestions = [];
-let currentQuestion = 0;
-let score = 0;
-let answered = false;
+// ========================================
+// HTML ELEMENTS
+// ========================================
 
-let totalStars =
-    Number(localStorage.getItem("brainArcadeStars")) || 0;
-
-let bestScore =
-    Number(localStorage.getItem("brainArcadeBest")) || 0;
-
-const totalStarsDisplay = document.getElementById("totalStars");
-const bestScoreDisplay = document.getElementById("bestScore");
-const levelBadge = document.getElementById("levelBadge");
-const roundLabel = document.getElementById("roundLabel");
+const timer = document.getElementById("timer");
+const levelRow = document.getElementById("levelRow");
+const progressTrack = document.getElementById("progressTrack");
 const progressBar = document.getElementById("progressBar");
+
+const welcomeScreen = document.getElementById("welcomeScreen");
+const gameContent = document.getElementById("gameContent");
+
 const challengeIcon = document.getElementById("challengeIcon");
 const category = document.getElementById("category");
+const completionTime = document.getElementById("completionTime");
+const completionMessage = document.getElementById("completionMessage");
 const questionTitle = document.getElementById("question");
 const instruction = document.getElementById("instruction");
-const scrambledWord = document.getElementById("scrambledWord");
-const answers = document.getElementById("answers");
-const feedback = document.getElementById("feedback");
-const startButton = document.getElementById("startButton");
-const nextButton = document.getElementById("nextButton");
 
-function updateStats() {
-    totalStarsDisplay.textContent = totalStars;
-    bestScoreDisplay.textContent = bestScore;
+const feedback = document.getElementById("feedback");
+const answerForm = document.getElementById("answerForm");
+const answerInput = document.getElementById("answerInput");
+const submitButton = document.getElementById("submitButton");
+const attemptsText = document.getElementById("attemptsText");
+
+const startButton = document.getElementById("startButton");
+
+const hintArea = document.getElementById("hintArea");
+const hintButton = document.getElementById("hintButton");
+const hintText = document.getElementById("hintText");
+
+const explanation = document.getElementById("explanation");
+const answerText = document.getElementById("answerText");
+const explanationText = document.getElementById("explanationText");
+
+// ========================================
+// GAME STATE
+// ========================================
+
+let dailyQuestion;
+let attemptsUsed = 0;
+let hintsUsed = 0;
+let elapsedSeconds = 0;
+let gameStarted = false;
+let gameCompleted = false;
+let timerInterval = null;
+
+// ========================================
+// SELECT DAILY QUESTION
+// ========================================
+
+function getDailyQuestion() {
+  const startDate = Date.UTC(2026, 0, 1);
+  const today = new Date();
+
+  const todayUTC = Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate()
+  );
+
+  const daysPassed = Math.floor(
+    (todayUTC - startDate) / 86400000
+  );
+
+  const index =
+    ((daysPassed % questions.length) + questions.length) %
+    questions.length;
+
+  return questions[index];
 }
+
+// ========================================
+// TIMER
+// ========================================
+
+function formatTime(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return (
+    String(minutes).padStart(2, "0") +
+    ":" +
+    String(seconds).padStart(2, "0")
+  );
+}
+
+function stopTimer() {
+  if (timerInterval !== null) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function startTimer() {
+  stopTimer();
+
+  timerInterval = setInterval(() => {
+    if (!gameStarted || gameCompleted) {
+      stopTimer();
+      return;
+    }
+
+    elapsedSeconds++;
+    timer.textContent = formatTime(elapsedSeconds);
+  }, 1000);
+}
+
+// ========================================
+// ANSWER CHECKING
+// ========================================
+
+function normalizeAnswer(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function answersMatch(userAnswer, correctAnswer) {
+  return normalizeAnswer(userAnswer) ===
+    normalizeAnswer(correctAnswer);
+}
+
+// ========================================
+// LOAD / RESET PUZZLE
+// ========================================
+
+function loadPuzzle() {
+  stopTimer();
+
+  dailyQuestion = getDailyQuestion();
+
+  attemptsUsed = 0;
+  hintsUsed = 0;
+  elapsedSeconds = 0;
+
+  gameStarted = false;
+  gameCompleted = false;
+
+  timer.textContent = "00:00";
+
+  // Welcome screen is the only main screen shown initially.
+  welcomeScreen.hidden = false;
+  gameContent.hidden = true;
+
+  answerForm.hidden = true;
+  hintArea.hidden = true;
+  feedback.hidden = true;
+  explanation.hidden = true;
+
+  levelRow.hidden = false;
+  progressTrack.hidden = false;
+  progressBar.style.width = "0%";
+
+  // Prepare today's question.
+  challengeIcon.textContent = dailyQuestion.icon;
+  category.textContent = dailyQuestion.category;
+  questionTitle.textContent = dailyQuestion.question;
+  instruction.textContent = dailyQuestion.instruction;
+
+  // Reset completion content.
+  completionTime.hidden = true;
+  completionTime.textContent = "";
+
+  completionMessage.hidden = true;
+  completionMessage.textContent = "";
+
+  challengeIcon.classList.remove("completed-icon");
+  category.classList.remove(
+    "completion-heading",
+    "success",
+    "encouragement"
+  );
+  questionTitle.classList.remove("completed-question");
+
+  // Reset input.
+  answerInput.value = "";
+  answerInput.disabled = false;
+  submitButton.disabled = false;
+
+  attemptsText.textContent = "3 attempts remaining";
+
+  // Reset feedback.
+  feedback.textContent = "";
+  feedback.className = "feedback";
+
+  // Reset hints.
+  hintText.textContent = "";
+  hintButton.disabled = false;
+  hintButton.textContent = "Need a hint?";
+
+  // Reset explanation.
+  answerText.textContent = "";
+  explanationText.textContent = "";
+}
+
+// ========================================
+// START GAME
+// ========================================
 
 function startGame() {
-    currentQuestion = 0;
-    score = 0;
-    answered = false;
+  if (gameStarted || gameCompleted) {
+    return;
+  }
 
-    // Make a copy so the original question bank stays unchanged.
-    roundQuestions = [...questions];
+  gameStarted = true;
 
-    // Shuffle the five mini-games for a surprise round.
-    for (let i = roundQuestions.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+  welcomeScreen.hidden = true;
+  gameContent.hidden = false;
 
-        [roundQuestions[i], roundQuestions[j]] =
-            [roundQuestions[j], roundQuestions[i]];
-    }
+  answerForm.hidden = false;
+  hintArea.hidden = false;
+  feedback.hidden = false;
 
-    startButton.hidden = true;
-    nextButton.hidden = true;
+  startButton.hidden = true;
 
-    showQuestion();
+  startTimer();
+  answerInput.focus();
 }
 
-function showQuestion() {
-    const q = roundQuestions[currentQuestion];
+// ========================================
+// SUBMIT ANSWER
+// ========================================
 
-    answered = false;
+answerForm.addEventListener("submit", function (event) {
+  event.preventDefault();
 
-    levelBadge.textContent = "LEVEL 1";
-    roundLabel.textContent =
-        `Challenge ${currentQuestion + 1} of ${roundQuestions.length}`;
+  if (!gameStarted || gameCompleted) {
+    return;
+  }
 
-    progressBar.style.width =
-        `${(currentQuestion / roundQuestions.length) * 100}%`;
+  const userAnswer = answerInput.value.trim();
 
-    challengeIcon.textContent = q.icon;
-    category.textContent = q.category;
-    questionTitle.textContent = q.question;
-    instruction.textContent = q.instruction;
+  if (!userAnswer) {
+    feedback.textContent = "Please enter an answer first.";
+    feedback.className = "feedback incorrect";
+    return;
+  }
 
-    // Only word scrambles need a scrambled-word display.
-    scrambledWord.textContent = q.scrambled || "";
+  attemptsUsed++;
 
-    feedback.textContent = "";
-    answers.replaceChildren();
+  const attemptsRemaining = 3 - attemptsUsed;
 
-    q.options.forEach(option => {
-        const button = document.createElement("button");
+  progressBar.style.width =
+    `${(attemptsUsed / 3) * 100}%`;
 
-        button.className = "answer-button";
-        button.textContent = option;
+  if (answersMatch(userAnswer, dailyQuestion.answer)) {
+    completePuzzle("solved");
+    return;
+  }
 
-        button.addEventListener("click", () => {
-            checkAnswer(option, button);
-        });
-
-        answers.appendChild(button);
-    });
-
-    nextButton.hidden = true;
-}
-
-function checkAnswer(choice, selectedButton) {
-    if (answered) return;
-
-    answered = true;
-
-    const q = roundQuestions[currentQuestion];
-    const correct = choice === q.answer;
-    const allButtons = answers.querySelectorAll("button");
-
-    allButtons.forEach(button => {
-        button.disabled = true;
-
-        if (button.textContent === q.answer) {
-            button.classList.add("correct");
-        }
-    });
-
-    if (correct) {
-        score += 10;
-        totalStars += 1;
-
-        localStorage.setItem("brainArcadeStars", totalStars);
-
-        feedback.textContent = "🎉 Brilliant! +10 points and +1 star!";
-        challengeIcon.textContent = "🌟";
-    } else {
-        selectedButton.classList.add("wrong");
-
-        feedback.textContent =
-            `Good try! The answer was ${q.answer}.`;
-
-        challengeIcon.textContent = "💪";
-    }
-
-    updateStats();
-
-    nextButton.textContent =
-        currentQuestion === roundQuestions.length - 1
-            ? "See My Results 🏆"
-            : "Next Challenge ➜";
-
-    nextButton.hidden = false;
-}
-
-function nextQuestion() {
-    if (!answered) return;
-
-    currentQuestion++;
-
-    if (currentQuestion < roundQuestions.length) {
-        showQuestion();
-    } else {
-        finishGame();
-    }
-}
-
-function finishGame() {
-    progressBar.style.width = "100%";
-
-    if (score > bestScore) {
-        bestScore = score;
-        localStorage.setItem("brainArcadeBest", bestScore);
-    }
-
-    updateStats();
-
-    levelBadge.textContent = "LEVEL COMPLETE";
-    roundLabel.textContent = "Adventure finished!";
-
-    challengeIcon.textContent = score === 50 ? "🏆" : "🎯";
-    category.textContent = "YOUR RESULTS";
-
-    questionTitle.textContent =
-        score === 50
-            ? "Perfect score, Brain Explorer!"
-            : score >= 30
-                ? "Amazing brain power!"
-                : "Great adventure!";
-
-    instruction.textContent =
-        `You scored ${score} out of 50 points.`;
-
-    scrambledWord.textContent = "";
-    answers.replaceChildren();
-
+  if (attemptsRemaining > 0) {
     feedback.textContent =
-        `⭐ You collected ${score / 10} stars this round!`;
+      `Not quite. Try again — ${attemptsRemaining} ` +
+      (attemptsRemaining === 1 ? "attempt" : "attempts") +
+      " remaining.";
 
-    nextButton.hidden = true;
-    startButton.textContent = "Play Again 🔁";
-    startButton.hidden = false;
+    feedback.className = "feedback incorrect";
+    attemptsText.textContent =
+      `${attemptsRemaining} attempts remaining`;
+
+    answerInput.value = "";
+    answerInput.focus();
+
+    return;
+  }
+
+  // All three attempts were incorrect.
+  completePuzzle("not-solved");
+});
+
+// ========================================
+// HINTS
+// ========================================
+
+function showHint() {
+  if (!gameStarted || gameCompleted) {
+    return;
+  }
+
+  if (hintsUsed >= dailyQuestion.hints.length) {
+    return;
+  }
+
+  hintText.textContent =
+    `Hint ${hintsUsed + 1}: ${dailyQuestion.hints[hintsUsed]}`;
+
+  hintsUsed++;
+
+  if (hintsUsed >= dailyQuestion.hints.length) {
+    hintButton.disabled = true;
+    hintButton.textContent = "No more hints";
+  } else {
+    hintButton.textContent = "Need another hint?";
+  }
 }
+
+// ========================================
+// COMPLETION SCREEN
+// ========================================
+
+function completePuzzle(result) {
+  if (gameCompleted) {
+    return;
+  }
+
+  // Lock the game and stop the timer.
+  gameCompleted = true;
+  gameStarted = false;
+  stopTimer();
+
+  // Hide every gameplay control.
+  welcomeScreen.hidden = true;
+  answerForm.hidden = true;
+  hintArea.hidden = true;
+  feedback.hidden = true;
+
+  // Hide progress indicators.
+  levelRow.hidden = true;
+  progressTrack.hidden = true;
+
+  // IMPORTANT: show the completion content.
+  gameContent.hidden = false;
+
+  // Remove previous completion styling.
+  category.classList.remove("success", "encouragement");
+  category.classList.add("completion-heading");
+
+  questionTitle.classList.add("completed-question");
+  challengeIcon.classList.add("completed-icon");
+
+  // Show the question again on the completion page.
+  questionTitle.textContent = dailyQuestion.question;
+
+  // Reveal the correct answer and explanation in both outcomes.
+  answerText.textContent = `Answer: ${dailyQuestion.answer}`;
+  explanationText.textContent = dailyQuestion.explanation;
+  explanation.hidden = false;
+
+  // CORRECT ANSWER
+  if (result === "solved") {
+    challengeIcon.textContent = "🏆";
+
+    category.textContent = "CONGRATULATIONS!";
+    category.classList.add("success");
+
+    completionMessage.textContent =
+      "Brilliant work! You cracked today's brain teaser.";
+
+    completionTime.textContent =
+      `You solved the puzzle in ${formatTime(elapsedSeconds)}.`;
+
+    completionTime.hidden = false;
+
+    completionMessage.hidden = true;
+    completionMessage.textContent = "";
+
+    
+
+  } else {
+    // THREE INCORRECT ATTEMPTS
+    challengeIcon.textContent = "💪";
+
+    category.textContent = "DON'T BE DISHEARTENED!";
+    category.classList.add("encouragement");
+
+    completionTime.hidden = true;
+    completionTime.textContent = "";
+
+    completionMessage.textContent =
+      "Every attempt is a chance to learn something new. " +
+      "Take a look at the solution, keep your curiosity alive, " +
+      "and come back ready for another challenge.";
+
+    completionMessage.hidden = false;
+
+    //instruction.textContent =
+    //  "You gave it a go. Here's the answer and how to solve it.";
+  }
+}
+
+// ========================================
+// EVENT LISTENERS
+// ========================================
 
 startButton.addEventListener("click", startGame);
-nextButton.addEventListener("click", nextQuestion);
+hintButton.addEventListener("click", showHint);
 
-updateStats();
+// Initialize the welcome screen.
+loadPuzzle();
