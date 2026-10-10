@@ -7,7 +7,7 @@
 
 const SUPABASE_URL = "https://medrzrkfuvufrqooegzl.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_QiA46lLVhKe2tk0m5_yJIA_kKmnv2WV";
-const FUNCTION_NAME = "brain-arcade";
+const FUNCTION_NAME = "swift-task";
 
 const $ = (id) => document.getElementById(id);
 
