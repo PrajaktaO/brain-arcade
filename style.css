@@ -249,6 +249,9 @@ h2 {
 
 .hint-box p {
   margin: 6px 0 0;
+
+  /* CHANGED: Preserve line breaks between hints. */
+  white-space: pre-line;
 }
 
 .completion {
