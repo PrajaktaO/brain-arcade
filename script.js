@@ -1,4 +1,3 @@
-
 /*
   Brain Arcade frontend
   All puzzle answers are checked by the Supabase Edge Function.
@@ -21,6 +20,10 @@ let elapsedSeconds = 0;
 let timerStartedAt = 0;
 let timerInterval = null;
 let gameCompleted = false;
+
+// CHANGED: Keep track of all hints already displayed.
+let displayedHints = [];
+let hintsExhausted = false;
 
 function formatTime(totalSeconds) {
   const seconds = Math.max(0, Math.floor(totalSeconds));
@@ -102,6 +105,20 @@ function updateAttempts(data) {
   $("attempts").textContent = `Attempts remaining: ${remaining}`;
 }
 
+// CHANGED: Render all previously revealed hints together.
+function renderHints() {
+  const hintLines = displayedHints.map(
+    (hint, index) => `Hint ${index + 1}: ${hint}`
+  );
+
+  if (hintsExhausted) {
+    hintLines.push("No more hints available.");
+  }
+
+  $("hint-text").textContent = hintLines.join("\n\n");
+  $("hint-box").hidden = hintLines.length === 0;
+}
+
 function displayGame(data) {
   currentQuestion = data.question;
   gameCompleted = Boolean(data.completed);
@@ -115,7 +132,13 @@ function displayGame(data) {
   $("answer-input").value = "";
   $("answer-input").disabled = gameCompleted;
   $("submit-button").disabled = gameCompleted;
+
+  // CHANGED: Reset hint display for a newly loaded game screen.
+  displayedHints = [];
+  hintsExhausted = false;
   $("hint-button").disabled = gameCompleted;
+  $("hint-button").textContent = "Need a hint?";
+
   clearFeedback();
 
   welcomeScreen.hidden = true;
@@ -243,13 +266,14 @@ async function submitAnswer(event) {
   } finally {
     if (!gameCompleted) {
       $("submit-button").disabled = false;
-      $("hint-button").disabled = false;
+      $("hint-button").disabled = hintsExhausted;
     }
   }
 }
 
 async function requestHint() {
-  if (gameCompleted) return;
+  // CHANGED: Do not make another request once hints are exhausted.
+  if (gameCompleted || hintsExhausted) return;
 
   $("hint-button").disabled = true;
   $("feedback").textContent = "";
@@ -259,9 +283,21 @@ async function requestHint() {
 
     updateAttempts(data);
 
-    $("hint-box").hidden = false;
-    $("hint-text").textContent =
-      data.hint || data.message || "No more hints are available.";
+    // CHANGED: Append the newly returned hint instead of replacing old hints.
+    if (data.hint && data.hint.trim()) {
+      const newHint = data.hint.trim();
+
+      if (!displayedHints.includes(newHint)) {
+        displayedHints.push(newHint);
+      }
+
+      renderHints();
+    } else {
+      // CHANGED: Show a clear message when the server has no more hints.
+      hintsExhausted = true;
+      renderHints();
+      $("hint-button").textContent = "No more hints";
+    }
 
     startVisibleTimer(data.elapsedSeconds || 0);
   } catch (error) {
@@ -269,7 +305,9 @@ async function requestHint() {
     $("feedback").textContent = error.message;
     $("feedback").className = "feedback error";
   } finally {
-    if (!gameCompleted) $("hint-button").disabled = false;
+    if (!gameCompleted && !hintsExhausted) {
+      $("hint-button").disabled = false;
+    }
   }
 }
 
