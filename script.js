@@ -25,6 +25,12 @@ let gameCompleted = false;
 let displayedHints = [];
 let hintsExhausted = false;
 
+function trackAnalytics(eventName, parameters = {}) {
+  if (typeof window.gtag === "function") {
+    window.gtag("event", eventName, parameters);
+  }
+}
+
 function formatTime(totalSeconds) {
   const seconds = Math.max(0, Math.floor(totalSeconds));
   const minutes = Math.floor(seconds / 60);
