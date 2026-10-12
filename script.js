@@ -1,3 +1,4 @@
+
 /*
   Brain Arcade frontend
   All puzzle answers are checked by the Supabase Edge Function.
@@ -21,13 +22,31 @@ let timerStartedAt = 0;
 let timerInterval = null;
 let gameCompleted = false;
 
-// CHANGED: Keep track of all hints already displayed.
+// Keep track of all hints already displayed.
 let displayedHints = [];
 let hintsExhausted = false;
 
+// NEW: Google Analytics helper.
 function trackAnalytics(eventName, parameters = {}) {
   if (typeof window.gtag === "function") {
     window.gtag("event", eventName, parameters);
+  }
+}
+
+// NEW: Prevent duplicate events for the same session.
+function trackAnalyticsOnce(eventName, parameters = {}) {
+  if (!sessionId || typeof window.gtag !== "function") return;
+
+  const storageKey = `brainArcadeAnalytics_${eventName}_${sessionId}`;
+
+  try {
+    if (localStorage.getItem(storageKey) === "1") return;
+
+    trackAnalytics(eventName, parameters);
+    localStorage.setItem(storageKey, "1");
+  } catch (error) {
+    // Analytics must never interrupt gameplay.
+    trackAnalytics(eventName, parameters);
   }
 }
 
@@ -111,7 +130,7 @@ function updateAttempts(data) {
   $("attempts").textContent = `Attempts remaining: ${remaining}`;
 }
 
-// CHANGED: Render all previously revealed hints together.
+// Render all previously revealed hints together.
 function renderHints() {
   const hintLines = displayedHints.map(
     (hint, index) => `Hint ${index + 1}: ${hint}`
@@ -139,7 +158,7 @@ function displayGame(data) {
   $("answer-input").disabled = gameCompleted;
   $("submit-button").disabled = gameCompleted;
 
-  // CHANGED: Reset hint display for a newly loaded game screen.
+  // Reset hint display for a newly loaded game screen.
   displayedHints = [];
   hintsExhausted = false;
   $("hint-button").disabled = gameCompleted;
@@ -153,6 +172,14 @@ function displayGame(data) {
 
   startVisibleTimer(data.elapsedSeconds || 0);
 
+  // NEW: Count a puzzle start once per session.
+  if (!gameCompleted) {
+    trackAnalyticsOnce("puzzle_started", {
+      game_name: "Brain Arcade",
+      puzzle_category: data.category
+    });
+  }
+
   if (gameCompleted) {
     renderCompletion(data);
   } else {
@@ -163,6 +190,14 @@ function displayGame(data) {
 function renderCompletion(data) {
   gameCompleted = true;
   stopVisibleTimer(data.elapsedSeconds);
+
+  // NEW: Record the outcome once per session.
+  trackAnalyticsOnce("puzzle_completed", {
+    game_name: "Brain Arcade",
+    solved: Boolean(data.solved),
+    attempts_used: data.attempts,
+    completion_time_seconds: data.elapsedSeconds
+  });
 
   gameScreen.hidden = true;
   completionScreen.hidden = false;
@@ -250,6 +285,13 @@ async function submitAnswer(event) {
     updateAttempts(data);
     startVisibleTimer(data.elapsedSeconds || 0);
 
+    // NEW: Record each answer submission without sending the answer text.
+    trackAnalytics("answer_submitted", {
+      game_name: "Brain Arcade",
+      is_correct: Boolean(data.correct),
+      attempt_number: data.attempts
+    });
+
     if (data.completed) {
       renderCompletion(data);
       return;
@@ -278,7 +320,6 @@ async function submitAnswer(event) {
 }
 
 async function requestHint() {
-  // CHANGED: Do not make another request once hints are exhausted.
   if (gameCompleted || hintsExhausted) return;
 
   $("hint-button").disabled = true;
@@ -289,7 +330,6 @@ async function requestHint() {
 
     updateAttempts(data);
 
-    // CHANGED: Append the newly returned hint instead of replacing old hints.
     if (data.hint && data.hint.trim()) {
       const newHint = data.hint.trim();
 
@@ -298,8 +338,13 @@ async function requestHint() {
       }
 
       renderHints();
+
+      // NEW: Count a hint only when the server returns one.
+      trackAnalytics("hint_used", {
+        game_name: "Brain Arcade",
+        hint_number: displayedHints.length
+      });
     } else {
-      // CHANGED: Show a clear message when the server has no more hints.
       hintsExhausted = true;
       renderHints();
       $("hint-button").textContent = "No more hints";
