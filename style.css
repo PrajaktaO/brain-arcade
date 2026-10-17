@@ -324,6 +324,7 @@ h2 {
 #completed-explanation {
   margin-bottom: 0;
   line-height: 1.7;
+  white-space: pre-line;
 }
 
 .closing-note {
