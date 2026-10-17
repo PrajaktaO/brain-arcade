@@ -167,6 +167,9 @@ h2 {
 #question {
   margin-bottom: 28px;
   white-space: pre-line;
+  font-size: 16px;
+  line-height: 1.7;
+  font-weight: 500;
 }
 
 #answer-form label {
