@@ -252,6 +252,7 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 // The link carries the player's chosen result so a friend can try to beat it:
 //   ?d=2026-10-19&t=134        (time in seconds)
 //   ?d=2026-10-19&a=2&h=1      (attempts and hints)
+//   ?d=2026-10-19              (puzzle only, shared by a player who did not solve it)
 // These values come from the link, are not verified, and are for friendly
 // challenges only. They never contain the answer or any identifier.
 function getShareLink(result, choice) {
@@ -270,7 +271,9 @@ function getShareLink(result, choice) {
   if (result && DATE_PATTERN.test(result.puzzleDate || "")) {
     url.searchParams.set("d", result.puzzleDate);
 
-    if (choice === "time") {
+    if (choice === "puzzle") {
+      // Puzzle only: no result is attached.
+    } else if (choice === "time") {
       url.searchParams.set("t", String(Math.round(result.elapsedSeconds)));
     } else {
       url.searchParams.set("a", String(result.attempts));
@@ -307,6 +310,10 @@ function readChallenge() {
       const hints = parseWholeNumber(params.get("h"), 0, 20);
       return attempts === null || hints === null ? null : { type: "attempts", date, attempts, hints };
     }
+
+    if ([...params.keys()].every((key) => key === "d")) {
+      return { type: "puzzle", date };
+    }
   } catch (error) {
     // A bad link simply starts a normal game.
   }
@@ -325,6 +332,8 @@ function todayInIndia() {
 }
 
 function getShareChoice() {
+  if (shareResult && !shareResult.solved) return "puzzle";
+
   const selected = document.querySelector('input[name="share-content"]:checked');
   return selected && selected.value === "time" ? "time" : "attempts";
 }
@@ -347,7 +356,16 @@ function resultPhrase(result, choice) {
 }
 
 function buildShareText(result, choice) {
-  return `🧠 Brain Arcade\nI solved ${puzzleName(result.puzzleDate)} ${resultPhrase(result, choice)}. Can you beat that?`;
+  if (choice === "puzzle") {
+    return `🧠 Brain Arcade\n\nI couldn't crack ${puzzleName(result.puzzleDate)}. Can you?`;
+  }
+
+  return `🧠 Brain Arcade\n\nI solved ${puzzleName(result.puzzleDate)} ${resultPhrase(result, choice)}. Can you beat that?`;
+}
+
+// The message and the link, with a blank line before the link.
+function buildFullShare(result, choice) {
+  return `${buildShareText(result, choice)}\n\n${getShareLink(result, choice)}`;
 }
 
 // ---- Receiving a challenge ----
@@ -365,7 +383,9 @@ function renderChallengeBanner() {
   if (!challenge) return;
 
   const choice = challenge.type === "time" ? "time" : "attempts";
-  let text = `Your friend solved ${puzzleName(challenge.date)} ${resultPhrase(challengeAsResult(), choice)}. Can you beat that?`;
+  let text = challenge.type === "puzzle"
+    ? `Your friend couldn't crack ${puzzleName(challenge.date)}. Can you?`
+    : `Your friend solved ${puzzleName(challenge.date)} ${resultPhrase(challengeAsResult(), choice)}. Can you beat that?`;
 
   const today = todayInIndia();
   if (today && today !== challenge.date) {
@@ -384,6 +404,7 @@ function renderChallengeBanner() {
 // How did this player do against the friend's result? Fewer is better.
 function compareWithChallenge(data) {
   if (!challenge || data.puzzleDate !== challenge.date) return null;
+  if (challenge.type === "puzzle") return data.solved ? "cracked" : "also_unsolved";
   if (!data.solved) return "unsolved";
 
   const mine = challenge.type === "time"
@@ -414,7 +435,9 @@ function renderChallengeResult(data) {
     beat: "🎉 You beat your friend's result!",
     tied: "🤝 You matched your friend's result!",
     behind: "Your friend's result was a little better this time. Challenge them back!",
-    unsolved: "Your friend solved this one. Try again with tomorrow's puzzle!"
+    unsolved: "Your friend solved this one. Try again with tomorrow's puzzle!",
+    cracked: "🎉 You cracked the puzzle your friend couldn't!",
+    also_unsolved: "This one was a tough one for both of you. Try again with tomorrow's puzzle!"
   };
 
   element.textContent = messages[outcome];
@@ -430,7 +453,7 @@ function renderChallengeResult(data) {
 function updateSharePreview() {
   if (!shareResult) return;
 
-  $("share-preview").textContent = buildShareText(shareResult, getShareChoice());
+  $("share-preview").textContent = buildFullShare(shareResult, getShareChoice());
   setShareStatus("");
 }
 
@@ -442,14 +465,9 @@ function setShareStatus(message, isError = false) {
 function renderShare(data) {
   const panel = $("share-panel");
 
-  // Only players who solved the puzzle are offered a result to share.
-  if (!data.solved) {
-    shareResult = null;
-    panel.hidden = true;
-    return;
-  }
-
+  // Players who solved it can share their result; others can share the puzzle only.
   shareResult = {
+    solved: Boolean(data.solved),
     puzzleDate: data.puzzleDate,
     attempts: Math.max(1, Number(data.attempts) || 1),
     hintsUsed: Math.max(0, Number(data.hintsUsed) || 0),
@@ -463,6 +481,12 @@ function renderShare(data) {
   } catch (error) {
     // A saved choice is only a convenience.
   }
+
+  $("share-choice").hidden = !shareResult.solved;
+  $("share-heading").textContent = shareResult.solved ? "Challenge a friend" : "Challenge a friend to try it";
+  $("share-note").textContent = shareResult.solved
+    ? "The link carries your result, so your friend can try to beat it."
+    : "No result is shared. Your friend just gets the puzzle.";
 
   const canShare = typeof navigator.share === "function";
   $("share-button").hidden = !canShare;
@@ -503,7 +527,7 @@ async function copyResult() {
   if (!shareResult) return;
 
   const choice = getShareChoice();
-  const text = `${buildShareText(shareResult, choice)}\n${getShareLink(shareResult, choice)}`;
+  const text = buildFullShare(shareResult, choice);
   const copied = await copyToClipboard(text);
 
   if (copied) {
@@ -511,7 +535,7 @@ async function copyResult() {
     trackAnalytics("share_result", {
       game_name: "Brain Arcade",
       method: "copy",
-      content: getShareChoice()
+      content: choice
     });
   } else {
     setShareStatus("Couldn't copy automatically. Select the text above and copy it.", true);
@@ -526,8 +550,7 @@ async function shareResultNatively() {
   try {
     await navigator.share({
       title: "Brain Arcade",
-      text: buildShareText(shareResult, choice),
-      url: getShareLink(shareResult, choice)
+      text: buildFullShare(shareResult, choice)
     });
 
     trackAnalytics("share_result", {

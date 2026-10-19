@@ -90,17 +90,17 @@ try:
         check("A1 share panel visible after a solve", page.is_visible("#share-panel"))
         check("A2 default is attempts and hints", page.is_checked('input[value="attempts"]'))
         preview = page.inner_text("#share-preview")
-        check("A3 attempts preview text", preview == "🧠 Brain Arcade\nI solved the 19 Oct puzzle in 2 tries with 1 hint. Can you beat that?", repr(preview))
+        check("A3 attempts preview text", preview == "🧠 Brain Arcade\n\nI solved the 19 Oct puzzle in 2 tries with 1 hint. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1", repr(preview))
         page.check('input[value="time"]', force=True)
         preview = page.inner_text("#share-preview")
-        check("A4 time preview text", preview == "🧠 Brain Arcade\nI solved the 19 Oct puzzle in 02:14. Can you beat that?", repr(preview))
+        check("A4 time preview text", preview == "🧠 Brain Arcade\n\nI solved the 19 Oct puzzle in 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&t=134", repr(preview))
         check("A5 choice saved", page.evaluate("localStorage.getItem('brainArcadeShareChoice')") == "time")
         check("A6 native share button hidden when unsupported", not page.is_visible("#share-button"))
         check("A7 copy button is the primary action when sharing unsupported", "primary-button" in page.get_attribute("#copy-button", "class"))
         page.click("#copy-button")
         page.wait_for_function("document.getElementById('share-status').textContent.length > 0")
         copied = page.evaluate("navigator.clipboard.readText()")
-        check("A8 clipboard text has message and a link carrying the time", copied == "🧠 Brain Arcade\nI solved the 19 Oct puzzle in 02:14. Can you beat that?\n" + BASE + "?d=2026-10-19&t=134", repr(copied))
+        check("A8 clipboard text has message and a link carrying the time", copied == "🧠 Brain Arcade\n\nI solved the 19 Oct puzzle in 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&t=134", repr(copied))
         check("A9 copied status shown", "Copied" in page.inner_text("#share-status"))
         check("A10 answer and explanation never in share text", "piano" not in copied.lower() and "keys" not in copied.lower())
         radios = page.get_by_role("radio").all()
@@ -111,13 +111,21 @@ try:
         page.screenshot(path=os.path.join(SHOTS, "desktop_completion.png"), full_page=True)
         ctx.close()
 
-        # ---- B. failed puzzle: nothing to share ----
+        # ---- B. failed puzzle: share the puzzle only, no result ----
         ctx, page, calls = make_context(browser, {
             "start": [snapshot()],
             "guess": [snapshot(attempts=3, completed=True, solved=False, correct=False, answer="A piano", explanation="x")],
         })
         play_to_solution(page)
-        check("B1 no share panel when unsolved", not page.is_visible("#share-panel"))
+        check("B1 share panel shown when unsolved", page.is_visible("#share-panel"))
+        check("B2 no result choice offered when unsolved", not page.is_visible("#share-choice"))
+        preview = page.inner_text("#share-preview")
+        check("B3 puzzle-only preview", preview == "🧠 Brain Arcade\n\nI couldn't crack the 19 Oct puzzle. Can you?\n\n" + BASE + "?d=2026-10-19", repr(preview))
+        check("B4 note says no result shared", "No result is shared" in page.inner_text("#share-note"))
+        page.click("#copy-button")
+        page.wait_for_function("document.getElementById('share-status').textContent.length > 0")
+        copied = page.evaluate("navigator.clipboard.readText()")
+        check("B5 copied text matches preview, no answer", copied == preview and "piano" not in copied.lower(), repr(copied))
         ctx.close()
 
         # ---- C. reload of a completed puzzle restores the panel and the saved choice ----
@@ -157,7 +165,7 @@ try:
         page.click("#share-button")
         page.wait_for_function("window.__shared.length === 1")
         shared = page.evaluate("window.__shared[0]")
-        check("E3 native share payload", shared == {"title": "Brain Arcade", "text": "🧠 Brain Arcade\nI solved the 19 Oct puzzle in 2 tries with 1 hint. Can you beat that?", "url": BASE + "?d=2026-10-19&a=2&h=1"}, repr(shared))
+        check("E3 native share payload", shared == {"title": "Brain Arcade", "text": "🧠 Brain Arcade\n\nI solved the 19 Oct puzzle in 2 tries with 1 hint. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1"}, repr(shared))
         # user cancels the share sheet: no error, no copy
         page.evaluate("(() => { window.__shareBehaviour = () => Promise.reject(Object.assign(new Error('cancel'), {name: 'AbortError'})); })()")
         page.click("#share-button")
@@ -197,7 +205,7 @@ try:
         check("G1 no horizontal scroll at 320 px", overflow <= 0, f"overflow {overflow}px")
         box = page.eval_on_selector("#share-panel", "e => { const r = e.getBoundingClientRect(); return [r.left, r.right]; }")
         check("G2 share panel inside the 320 px screen", box[0] >= 0 and box[1] <= 320, str(box))
-        sizes = page.eval_on_selector_all(".choice span, #share-button, #copy-button", "els => els.map(e => e.getBoundingClientRect().height)")
+        sizes = page.eval_on_selector_all(".choice, #share-button, #copy-button", "els => els.map(e => e.getBoundingClientRect().height)")
         check("G3 touch targets at least 44 px", all(s >= 44 for s in sizes), str(sizes))
         page.screenshot(path=os.path.join(SHOTS, "phone_completion.png"), full_page=True)
         ctx.close()
@@ -232,12 +240,27 @@ try:
         check("H2 attempts challenge banner", page.is_visible("#challenge-banner") and "in 2 tries with 1 hint. Can you beat that?" in page.inner_text("#challenge-banner"))
         ctx.close()
 
+        ctx, page = open_challenge(f"?d={TODAY}")
+        check("H2a puzzle-only challenge banner", page.is_visible("#challenge-banner") and "Your friend couldn't crack" in page.inner_text("#challenge-banner") and page.inner_text("#challenge-banner").endswith("Can you?"), page.inner_text("#challenge-banner"))
+        ctx.close()
+
+        ctx, page = open_challenge(f"?d={TODAY}", win0 := dict(attempts=2, hintsUsed=0, elapsedSeconds=50, **SOLVED))
+        finish(page)
+        check("H2c solving a puzzle-only challenge", "cracked the puzzle your friend couldn't" in page.inner_text("#challenge-result"))
+        check("H2d puzzle challenge recorded", ["event", "challenge_completed", {"game_name": "Brain Arcade", "challenge_type": "puzzle", "outcome": "cracked"}] in datalayer(page))
+        ctx.close()
+
+        ctx, page = open_challenge(f"?d={TODAY}", dict(attempts=3, completed=True, solved=False, correct=False, answer="x", explanation="y"))
+        finish(page)
+        check("H2e both unsolved", "tough one for both" in page.inner_text("#challenge-result"))
+        ctx.close()
+
         ctx, page = open_challenge("?d=2020-01-05&t=134")
         check("H2b other-day challenge says it is not comparable", "new one" in page.inner_text("#challenge-banner"))
         ctx.close()
 
         bad = ["?d=" + TODAY + "&t=abc", "?d=2026-13-40&t=5", "?d=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E&t=5", "?a=2&h=1",
-               "?d=" + TODAY + "&a=9&h=1", "?d=" + TODAY + "&t=0", "?d=" + TODAY + "&a=2", "?d=" + TODAY + "&t=99999999", "?d=" + TODAY + "&t=-5"]
+               "?d=" + TODAY + "&a=9&h=1", "?d=" + TODAY + "&t=0", "?d=" + TODAY + "&a=2", "?d=" + TODAY + "&t=99999999", "?d=" + TODAY + "&t=-5", "?d=" + TODAY + "&x=1", "?d=" + TODAY + "&h=1"]
         for q in bad:
             ctx, page = open_challenge(q)
             check(f"H3 invalid link ignored {q[:34]}", not page.is_visible("#challenge-banner") and page.query_selector("img") is None)
