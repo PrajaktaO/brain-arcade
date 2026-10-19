@@ -222,6 +222,184 @@ function renderCompletion(data) {
     $("completion-message").textContent =
       "Some puzzles take a different way of thinking. Keep practising, stay curious, and try again with tomorrow's challenge.";
   }
+
+  renderShare(data);
+}
+
+/*
+  Result sharing (browser only).
+  The message never contains the answer, the explanation or any identifier.
+*/
+const SHARE_CHOICE_KEY = "brainArcadeShareChoice";
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+let shareResult = null;
+
+function pluralise(count, one, many) {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+function formatShortDate(isoDate) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate || "");
+  if (!match) return "";
+
+  const month = MONTHS[Number(match[2]) - 1];
+  return month ? `${Number(match[3])} ${month}` : "";
+}
+
+function getShareLink() {
+  try {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.hash = "";
+    url.pathname = url.pathname.replace(/index\.html$/, "");
+    return url.toString();
+  } catch (error) {
+    return window.location.href;
+  }
+}
+
+function getShareChoice() {
+  const selected = document.querySelector('input[name="share-content"]:checked');
+  return selected && selected.value === "time" ? "time" : "attempts";
+}
+
+function buildShareText(result, choice) {
+  const date = formatShortDate(result.puzzleDate);
+  const puzzle = date ? `the ${date} puzzle` : "today's puzzle";
+
+  if (choice === "time") {
+    return `🧠 Brain Arcade\nI solved ${puzzle} in ${formatTime(result.elapsedSeconds)}. Can you beat that?`;
+  }
+
+  const hints = result.hintsUsed > 0
+    ? pluralise(result.hintsUsed, "hint", "hints")
+    : "no hints";
+
+  return `🧠 Brain Arcade\nI solved ${puzzle} in ${pluralise(result.attempts, "try", "tries")} with ${hints}. Can you beat that?`;
+}
+
+function updateSharePreview() {
+  if (!shareResult) return;
+
+  $("share-preview").textContent = buildShareText(shareResult, getShareChoice());
+  setShareStatus("");
+}
+
+function setShareStatus(message, isError = false) {
+  $("share-status").textContent = message;
+  $("share-status").className = isError ? "share-status error" : "share-status";
+}
+
+function renderShare(data) {
+  const panel = $("share-panel");
+
+  // Only players who solved the puzzle are offered a result to share.
+  if (!data.solved) {
+    shareResult = null;
+    panel.hidden = true;
+    return;
+  }
+
+  shareResult = {
+    puzzleDate: data.puzzleDate,
+    attempts: Math.max(1, Number(data.attempts) || 1),
+    hintsUsed: Math.max(0, Number(data.hintsUsed) || 0),
+    elapsedSeconds: Number.isFinite(data.elapsedSeconds) ? data.elapsedSeconds : 0
+  };
+
+  try {
+    const saved = localStorage.getItem(SHARE_CHOICE_KEY);
+    const radio = document.querySelector(`input[name="share-content"][value="${saved === "time" ? "time" : "attempts"}"]`);
+    if (radio) radio.checked = true;
+  } catch (error) {
+    // A saved choice is only a convenience.
+  }
+
+  const canShare = typeof navigator.share === "function";
+  $("share-button").hidden = !canShare;
+  $("copy-button").className = canShare ? "secondary-button" : "primary-button";
+  $("copy-button").textContent = canShare ? "Copy result" : "Copy result to share";
+
+  updateSharePreview();
+  panel.hidden = false;
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (error) {
+    // Fall back to the older copy command for browsers without clipboard access.
+    const field = document.createElement("textarea");
+    field.value = text;
+    field.setAttribute("readonly", "");
+    field.style.position = "fixed";
+    field.style.opacity = "0";
+    document.body.appendChild(field);
+    field.select();
+
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch (copyError) {
+      copied = false;
+    }
+
+    document.body.removeChild(field);
+    return copied;
+  }
+}
+
+async function copyResult() {
+  if (!shareResult) return;
+
+  const text = `${buildShareText(shareResult, getShareChoice())}\n${getShareLink()}`;
+  const copied = await copyToClipboard(text);
+
+  if (copied) {
+    setShareStatus("Copied! Paste it into a chat to challenge someone.");
+    trackAnalytics("share_result", {
+      game_name: "Brain Arcade",
+      method: "copy",
+      content: getShareChoice()
+    });
+  } else {
+    setShareStatus("Couldn't copy automatically. Select the text above and copy it.", true);
+  }
+}
+
+async function shareResultNatively() {
+  if (!shareResult) return;
+
+  const choice = getShareChoice();
+
+  try {
+    await navigator.share({
+      title: "Brain Arcade",
+      text: buildShareText(shareResult, choice),
+      url: getShareLink()
+    });
+
+    trackAnalytics("share_result", {
+      game_name: "Brain Arcade",
+      method: "native",
+      content: choice
+    });
+  } catch (error) {
+    // Closing the share sheet is not an error.
+    if (error && error.name === "AbortError") return;
+    await copyResult();
+  }
+}
+
+function saveShareChoice() {
+  try {
+    localStorage.setItem(SHARE_CHOICE_KEY, getShareChoice());
+  } catch (error) {
+    // A saved choice is only a convenience.
+  }
+
+  updateSharePreview();
 }
 
 async function startGame() {
@@ -365,3 +543,9 @@ async function requestHint() {
 $("start-button").addEventListener("click", startGame);
 $("answer-form").addEventListener("submit", submitAnswer);
 $("hint-button").addEventListener("click", requestHint);
+
+document.querySelectorAll('input[name="share-content"]').forEach((radio) => {
+  radio.addEventListener("change", saveShareChoice);
+});
+$("share-button").addEventListener("click", shareResultNatively);
+$("copy-button").addEventListener("click", copyResult);
