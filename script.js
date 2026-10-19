@@ -224,6 +224,7 @@ function renderCompletion(data) {
   }
 
   renderShare(data);
+  renderChallengeResult(data);
 }
 
 /*
@@ -246,15 +247,80 @@ function formatShortDate(isoDate) {
   return month ? `${Number(match[3])} ${month}` : "";
 }
 
-function getShareLink() {
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+// The link carries the player's chosen result so a friend can try to beat it:
+//   ?d=2026-10-19&t=134        (time in seconds)
+//   ?d=2026-10-19&a=2&h=1      (attempts and hints)
+// These values come from the link, are not verified, and are for friendly
+// challenges only. They never contain the answer or any identifier.
+function getShareLink(result, choice) {
+  let url;
+
   try {
-    const url = new URL(window.location.href);
-    url.search = "";
-    url.hash = "";
-    url.pathname = url.pathname.replace(/index\.html$/, "");
-    return url.toString();
+    url = new URL(window.location.href);
   } catch (error) {
     return window.location.href;
+  }
+
+  url.search = "";
+  url.hash = "";
+  url.pathname = url.pathname.replace(/index\.html$/, "");
+
+  if (result && DATE_PATTERN.test(result.puzzleDate || "")) {
+    url.searchParams.set("d", result.puzzleDate);
+
+    if (choice === "time") {
+      url.searchParams.set("t", String(Math.round(result.elapsedSeconds)));
+    } else {
+      url.searchParams.set("a", String(result.attempts));
+      url.searchParams.set("h", String(result.hintsUsed));
+    }
+  }
+
+  return url.toString();
+}
+
+function parseWholeNumber(value, min, max) {
+  if (!/^\d{1,6}$/.test(value || "")) return null;
+
+  const number = Number(value);
+  return number >= min && number <= max ? number : null;
+}
+
+// Read a friend's challenge from the page address. Anything invalid is ignored.
+function readChallenge() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const date = params.get("d") || "";
+    const day = Number(date.slice(8, 10));
+
+    if (!DATE_PATTERN.test(date) || !formatShortDate(date) || day < 1 || day > 31) return null;
+
+    if (params.has("t")) {
+      const seconds = parseWholeNumber(params.get("t"), 1, 999999);
+      return seconds === null ? null : { type: "time", date, seconds };
+    }
+
+    if (params.has("a")) {
+      const attempts = parseWholeNumber(params.get("a"), 1, 3);
+      const hints = parseWholeNumber(params.get("h"), 0, 20);
+      return attempts === null || hints === null ? null : { type: "attempts", date, attempts, hints };
+    }
+  } catch (error) {
+    // A bad link simply starts a normal game.
+  }
+
+  return null;
+}
+
+const challenge = readChallenge();
+
+function todayInIndia() {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+  } catch (error) {
+    return "";
   }
 }
 
@@ -263,19 +329,102 @@ function getShareChoice() {
   return selected && selected.value === "time" ? "time" : "attempts";
 }
 
-function buildShareText(result, choice) {
-  const date = formatShortDate(result.puzzleDate);
-  const puzzle = date ? `the ${date} puzzle` : "today's puzzle";
+function puzzleName(isoDate) {
+  const date = formatShortDate(isoDate);
+  return date ? `the ${date} puzzle` : "today's puzzle";
+}
 
+function resultPhrase(result, choice) {
   if (choice === "time") {
-    return `🧠 Brain Arcade\nI solved ${puzzle} in ${formatTime(result.elapsedSeconds)}. Can you beat that?`;
+    return `in ${formatTime(result.elapsedSeconds)}`;
   }
 
   const hints = result.hintsUsed > 0
     ? pluralise(result.hintsUsed, "hint", "hints")
     : "no hints";
 
-  return `🧠 Brain Arcade\nI solved ${puzzle} in ${pluralise(result.attempts, "try", "tries")} with ${hints}. Can you beat that?`;
+  return `in ${pluralise(result.attempts, "try", "tries")} with ${hints}`;
+}
+
+function buildShareText(result, choice) {
+  return `🧠 Brain Arcade\nI solved ${puzzleName(result.puzzleDate)} ${resultPhrase(result, choice)}. Can you beat that?`;
+}
+
+// ---- Receiving a challenge ----
+
+function challengeAsResult() {
+  return {
+    puzzleDate: challenge.date,
+    attempts: challenge.attempts,
+    hintsUsed: challenge.hints,
+    elapsedSeconds: challenge.seconds
+  };
+}
+
+function renderChallengeBanner() {
+  if (!challenge) return;
+
+  const choice = challenge.type === "time" ? "time" : "attempts";
+  let text = `Your friend solved ${puzzleName(challenge.date)} ${resultPhrase(challengeAsResult(), choice)}. Can you beat that?`;
+
+  const today = todayInIndia();
+  if (today && today !== challenge.date) {
+    text += " Today's puzzle is a new one, so a direct comparison isn't possible.";
+  }
+
+  $("challenge-banner").textContent = text;
+  $("challenge-banner").hidden = false;
+
+  trackAnalytics("challenge_opened", {
+    game_name: "Brain Arcade",
+    challenge_type: challenge.type
+  });
+}
+
+// How did this player do against the friend's result? Fewer is better.
+function compareWithChallenge(data) {
+  if (!challenge || data.puzzleDate !== challenge.date) return null;
+  if (!data.solved) return "unsolved";
+
+  const mine = challenge.type === "time"
+    ? [data.elapsedSeconds]
+    : [data.attempts, data.hintsUsed || 0];
+  const theirs = challenge.type === "time"
+    ? [challenge.seconds]
+    : [challenge.attempts, challenge.hints];
+
+  for (let index = 0; index < mine.length; index += 1) {
+    if (mine[index] < theirs[index]) return "beat";
+    if (mine[index] > theirs[index]) return "behind";
+  }
+
+  return "tied";
+}
+
+function renderChallengeResult(data) {
+  const outcome = compareWithChallenge(data);
+  const element = $("challenge-result");
+
+  if (!outcome) {
+    element.hidden = true;
+    return;
+  }
+
+  const messages = {
+    beat: "🎉 You beat your friend's result!",
+    tied: "🤝 You matched your friend's result!",
+    behind: "Your friend's result was a little better this time. Challenge them back!",
+    unsolved: "Your friend solved this one. Try again with tomorrow's puzzle!"
+  };
+
+  element.textContent = messages[outcome];
+  element.hidden = false;
+
+  trackAnalyticsOnce("challenge_completed", {
+    game_name: "Brain Arcade",
+    challenge_type: challenge.type,
+    outcome
+  });
 }
 
 function updateSharePreview() {
@@ -353,7 +502,8 @@ async function copyToClipboard(text) {
 async function copyResult() {
   if (!shareResult) return;
 
-  const text = `${buildShareText(shareResult, getShareChoice())}\n${getShareLink()}`;
+  const choice = getShareChoice();
+  const text = `${buildShareText(shareResult, choice)}\n${getShareLink(shareResult, choice)}`;
   const copied = await copyToClipboard(text);
 
   if (copied) {
@@ -377,7 +527,7 @@ async function shareResultNatively() {
     await navigator.share({
       title: "Brain Arcade",
       text: buildShareText(shareResult, choice),
-      url: getShareLink()
+      url: getShareLink(shareResult, choice)
     });
 
     trackAnalytics("share_result", {
@@ -549,3 +699,5 @@ document.querySelectorAll('input[name="share-content"]').forEach((radio) => {
 });
 $("share-button").addEventListener("click", shareResultNatively);
 $("copy-button").addEventListener("click", copyResult);
+
+renderChallengeBanner();

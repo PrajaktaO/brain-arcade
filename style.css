@@ -294,6 +294,27 @@ h2 {
   font-size: 19px;
 }
 
+.challenge-result {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #efedff;
+  color: var(--accent-dark);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.welcome > p.challenge-banner {
+  max-width: 420px;
+  margin: 0 auto 22px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #efedff;
+  color: var(--accent-dark);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .share-panel {
   margin: 0 0 26px;
   padding: 20px;
@@ -376,6 +397,13 @@ h2 {
   white-space: pre-line;
   overflow-wrap: anywhere;
   user-select: text;
+}
+
+.share-note {
+  margin: -6px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .share-actions {

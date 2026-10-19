@@ -9,6 +9,8 @@ import subprocess
 import sys
 import tempfile
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from playwright.sync_api import sync_playwright
 
@@ -18,6 +20,7 @@ os.makedirs(SHOTS, exist_ok=True)
 PORT = 8765
 BASE = f"http://localhost:{PORT}/"
 results = []
+TODAY = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y-%m-%d")
 
 
 def check(name, condition, detail=""):
@@ -97,7 +100,7 @@ try:
         page.click("#copy-button")
         page.wait_for_function("document.getElementById('share-status').textContent.length > 0")
         copied = page.evaluate("navigator.clipboard.readText()")
-        check("A8 clipboard text has message and link", copied == "🧠 Brain Arcade\nI solved the 19 Oct puzzle in 02:14. Can you beat that?\n" + BASE, repr(copied))
+        check("A8 clipboard text has message and a link carrying the time", copied == "🧠 Brain Arcade\nI solved the 19 Oct puzzle in 02:14. Can you beat that?\n" + BASE + "?d=2026-10-19&t=134", repr(copied))
         check("A9 copied status shown", "Copied" in page.inner_text("#share-status"))
         check("A10 answer and explanation never in share text", "piano" not in copied.lower() and "keys" not in copied.lower())
         radios = page.get_by_role("radio").all()
@@ -154,7 +157,7 @@ try:
         page.click("#share-button")
         page.wait_for_function("window.__shared.length === 1")
         shared = page.evaluate("window.__shared[0]")
-        check("E3 native share payload", shared == {"title": "Brain Arcade", "text": "🧠 Brain Arcade\nI solved the 19 Oct puzzle in 2 tries with 1 hint. Can you beat that?", "url": BASE}, repr(shared))
+        check("E3 native share payload", shared == {"title": "Brain Arcade", "text": "🧠 Brain Arcade\nI solved the 19 Oct puzzle in 2 tries with 1 hint. Can you beat that?", "url": BASE + "?d=2026-10-19&a=2&h=1"}, repr(shared))
         # user cancels the share sheet: no error, no copy
         page.evaluate("(() => { window.__shareBehaviour = () => Promise.reject(Object.assign(new Error('cancel'), {name: 'AbortError'})); })()")
         page.click("#share-button")
@@ -197,6 +200,84 @@ try:
         sizes = page.eval_on_selector_all(".choice span, #share-button, #copy-button", "els => els.map(e => e.getBoundingClientRect().height)")
         check("G3 touch targets at least 44 px", all(s >= 44 for s in sizes), str(sizes))
         page.screenshot(path=os.path.join(SHOTS, "phone_completion.png"), full_page=True)
+        ctx.close()
+
+        # ---- H. challenge links: receiving a friend's result ----
+        def open_challenge(query, final=None, init=None):
+            steps = {"start": [snapshot(puzzleDate=TODAY)]}
+            if final is not None:
+                steps["guess"] = [snapshot(puzzleDate=TODAY, **final)]
+            ctx, page, calls = make_context(browser, steps, init_script=init)
+            page.goto(BASE + query)
+            return ctx, page
+
+        def finish(page):
+            page.click("#start-button")
+            page.wait_for_selector("#game-screen:not([hidden])")
+            page.fill("#answer-input", "anything")
+            page.click("#submit-button")
+            page.wait_for_selector("#completion-screen:not([hidden])")
+
+        def datalayer(page):
+            return page.evaluate("Array.from(window.dataLayer || []).map(a => Array.from(a))")
+
+        ctx, page = open_challenge(f"?d={TODAY}&t=134")
+        banner = page.inner_text("#challenge-banner") if page.is_visible("#challenge-banner") else ""
+        day = int(TODAY[8:]); mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][int(TODAY[5:7]) - 1]
+        check("H1 time challenge banner", banner == f"Your friend solved the {day} {mon} puzzle in 02:14. Can you beat that?", repr(banner))
+        check("H1b opening a challenge is recorded", ["event", "challenge_opened", {"game_name": "Brain Arcade", "challenge_type": "time"}] in datalayer(page))
+        ctx.close()
+
+        ctx, page = open_challenge(f"?d={TODAY}&a=2&h=1")
+        check("H2 attempts challenge banner", page.is_visible("#challenge-banner") and "in 2 tries with 1 hint. Can you beat that?" in page.inner_text("#challenge-banner"))
+        ctx.close()
+
+        ctx, page = open_challenge("?d=2020-01-05&t=134")
+        check("H2b other-day challenge says it is not comparable", "new one" in page.inner_text("#challenge-banner"))
+        ctx.close()
+
+        bad = ["?d=" + TODAY + "&t=abc", "?d=2026-13-40&t=5", "?d=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E&t=5", "?a=2&h=1",
+               "?d=" + TODAY + "&a=9&h=1", "?d=" + TODAY + "&t=0", "?d=" + TODAY + "&a=2", "?d=" + TODAY + "&t=99999999", "?d=" + TODAY + "&t=-5"]
+        for q in bad:
+            ctx, page = open_challenge(q)
+            check(f"H3 invalid link ignored {q[:34]}", not page.is_visible("#challenge-banner") and page.query_selector("img") is None)
+            ctx.close()
+
+        win = dict(attempts=2, hintsUsed=1, elapsedSeconds=134, **SOLVED)
+        cases = [
+            (f"?d={TODAY}&t=200", win, "beat"), (f"?d={TODAY}&t=134", win, "tied"), (f"?d={TODAY}&t=100", win, "behind"),
+            (f"?d={TODAY}&a=2&h=1", win, "tied"), (f"?d={TODAY}&a=3&h=0", win, "beat"), (f"?d={TODAY}&a=2&h=0", win, "behind"),
+            (f"?d={TODAY}&a=1&h=0", win, "behind"), (f"?d={TODAY}&a=2&h=3", win, "beat"),
+            (f"?d={TODAY}&a=2&h=1", dict(attempts=3, completed=True, solved=False, correct=False, answer="x", explanation="y"), "unsolved"),
+        ]
+        expect_text = {"beat": "You beat your friend", "tied": "You matched your friend", "behind": "Challenge them back", "unsolved": "Try again with tomorrow"}
+        for q, final, outcome in cases:
+            ctx, page = open_challenge(q, final)
+            finish(page)
+            visible = page.is_visible("#challenge-result")
+            text = page.inner_text("#challenge-result") if visible else ""
+            check(f"H4 {q[12:]} -> {outcome}", visible and expect_text[outcome] in text, text)
+            ctx.close()
+
+        ctx, page = open_challenge("?d=2020-01-05&t=134", win)
+        finish(page)
+        check("H5 no comparison when the puzzle day differs", not page.is_visible("#challenge-result"))
+        ctx.close()
+
+        ctx, page = open_challenge(f"?d={TODAY}&t=200", win)
+        finish(page)
+        events = datalayer(page)
+        check("H6 completion outcome recorded", ["event", "challenge_completed", {"game_name": "Brain Arcade", "challenge_type": "time", "outcome": "beat"}] in events, str(events))
+        page.check('input[value="time"]', force=True)
+        page.click("#copy-button")
+        page.wait_for_function("document.getElementById('share-status').textContent.length > 0")
+        copied = page.evaluate("navigator.clipboard.readText()")
+        check("H7 new link carries own result, not the friend's", "t=134" in copied and "t=200" not in copied, copied)
+        check("H8 sharing is recorded with method and content", ["event", "share_result", {"game_name": "Brain Arcade", "method": "copy", "content": "time"}] in datalayer(page))
+        ctx.close()
+
+        ctx, page = open_challenge(f"?d={TODAY}&t=200", dict(attempts=1, hintsUsed=0, elapsedSeconds=30, **SOLVED))
+        page.screenshot(path=os.path.join(SHOTS, "phone_challenge_welcome.png"))
         ctx.close()
 
         browser.close()
