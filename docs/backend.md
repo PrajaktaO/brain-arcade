@@ -184,3 +184,4 @@ The legacy tables are not recreated because their definitions were not captured.
 ## 10. Change log
 
 - 2026-10-17: initial baseline (Step A). No behaviour, schema or deployment changes.
+- 2026-10-20: archive backend written (new function `archive-api`, new table `archive_plays`, additive). See `docs/archive-backend.md`. Not deployed.
