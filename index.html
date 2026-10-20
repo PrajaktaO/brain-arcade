@@ -32,6 +32,7 @@
       <p class="eyebrow">YOUR DAILY BRAIN BREAK</p>
       <h2>Ready to challenge yourself?</h2>
       <p>One puzzle. Three attempts. How quickly can you solve it?</p>
+      <p id="challenge-banner" class="challenge-banner" role="status" hidden></p>
       <button id="start-button" class="primary-button">Start today's puzzle</button>
       <p id="welcome-error" class="error-message" role="alert"></p>
     </section>
@@ -82,6 +83,28 @@
         <span>Completion time</span>
         <strong id="completion-time">00:00</strong>
       </div>
+      <p id="challenge-result" class="challenge-result" role="status" hidden></p>
+      <section id="share-panel" class="share-panel" aria-labelledby="share-heading" hidden>
+        <h3 id="share-heading">Challenge a friend</h3>
+        <fieldset id="share-choice" class="share-choice">
+          <legend>What would you like to share?</legend>
+          <label class="choice">
+            <input type="radio" name="share-content" value="attempts" checked>
+            <span>Attempts &amp; hints</span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="share-content" value="time">
+            <span>Time</span>
+          </label>
+        </fieldset>
+        <p id="share-preview" class="share-preview"></p>
+        <p id="share-note" class="share-note">The link carries your result, so your friend can try to beat it.</p>
+        <div class="share-actions">
+          <button id="share-button" class="primary-button" type="button" hidden>Share</button>
+          <button id="copy-button" class="secondary-button" type="button">Copy result</button>
+        </div>
+        <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
+      </section>
       <div class="solution">
         <p class="eyebrow">TODAY'S PUZZLE</p>
         <p id="completed-question" class="solution-question"></p>
