@@ -331,7 +331,6 @@ h2 {
 
 .share-choice {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
   margin: 0 0 14px;
@@ -352,7 +351,8 @@ h2 {
 .choice {
   display: flex;
   align-items: center;
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-width: 0;
   gap: 6px;
   min-height: 48px;
   padding: 0 10px;
@@ -361,6 +361,7 @@ h2 {
   background: var(--paper);
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.25;
   cursor: pointer;
 }
 
