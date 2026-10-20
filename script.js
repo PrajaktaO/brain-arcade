@@ -357,10 +357,10 @@ function resultPhrase(result, choice) {
 
 function buildShareText(result, choice) {
   if (choice === "puzzle") {
-    return `🧠 Brain Arcade\n\nI couldn't crack ${puzzleName(result.puzzleDate)}. Can you?`;
+    return `🧠 🧩 Brain Arcade\n\nI couldn't crack ${puzzleName(result.puzzleDate)}. Can you?`;
   }
 
-  return `🧠 Brain Arcade\n\nI solved ${puzzleName(result.puzzleDate)} ${resultPhrase(result, choice)}. Can you beat that?`;
+  return `🧠 🧩 Brain Arcade\n\nI solved ${puzzleName(result.puzzleDate)} ${resultPhrase(result, choice)}. Can you beat that?`;
 }
 
 // The message and the link, with a blank line before the link.
