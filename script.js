@@ -259,6 +259,13 @@ const SHARE_CHOICE_KEY = "brainArcadeShareChoice";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let shareResult = null;
 
+const SHARE_NOTES = {
+  attempts: "The link carries your result, so your friend can try to beat it.",
+  time: "The link carries your result, so your friend can try to beat it.",
+  puzzle: "No result is shared. Your friend just gets the puzzle.",
+  record: "Only your totals are shared. The link opens the game."
+};
+
 function pluralise(count, one, many) {
   return `${count} ${count === 1 ? one : many}`;
 }
@@ -292,7 +299,7 @@ function getShareLink(result, choice) {
   url.hash = "";
   url.pathname = url.pathname.replace(/index\.html$/, "");
 
-  if (result && DATE_PATTERN.test(result.puzzleDate || "")) {
+  if (choice !== "record" && result && DATE_PATTERN.test(result.puzzleDate || "")) {
     url.searchParams.set("d", result.puzzleDate);
 
     if (choice === "puzzle") {
@@ -356,15 +363,35 @@ function todayInIndia() {
 }
 
 function getShareChoice() {
-  if (shareResult && !shareResult.solved) return "puzzle";
-
   const selected = document.querySelector('input[name="share-content"]:checked');
-  return selected && selected.value === "time" ? "time" : "attempts";
+  const value = selected ? selected.value : "";
+
+  if (shareResult && !shareResult.solved) {
+    return value === "record" ? "record" : "puzzle";
+  }
+
+  return ["time", "record"].includes(value) ? value : "attempts";
+}
+
+// Puzzle 1 was 14 Oct 2026 and the numbers follow the calendar.
+function puzzleNumber(isoDate) {
+  if (!DATE_PATTERN.test(isoDate || "")) return 0;
+
+  const number = daysBetween(PUZZLE_ONE_DATE, isoDate) + 1;
+  return number >= 1 ? number : 0;
 }
 
 function puzzleName(isoDate) {
+  const number = puzzleNumber(isoDate);
+  if (number) return `puzzle #${number}`;
+
   const date = formatShortDate(isoDate);
   return date ? `the ${date} puzzle` : "today's puzzle";
+}
+
+function shareHeader(isoDate) {
+  const number = puzzleNumber(isoDate);
+  return number ? `🧠 🧩 Brain Arcade #${number}` : "🧠 🧩 Brain Arcade";
 }
 
 function resultPhrase(result, choice) {
@@ -380,11 +407,16 @@ function resultPhrase(result, choice) {
 }
 
 function buildShareText(result, choice) {
-  if (choice === "puzzle") {
-    return `🧠 🧩 Brain Arcade\n\nI couldn't crack ${puzzleName(result.puzzleDate)}. Can you?`;
+  if (choice === "record") {
+    const totals = recordTotals();
+    return `🧠 🧩 Brain Arcade\n\nI've solved ${totals.solved} of ${totals.total} puzzles so far. Can you beat that?`;
   }
 
-  return `🧠 🧩 Brain Arcade\n\nI solved ${puzzleName(result.puzzleDate)} ${resultPhrase(result, choice)}. Can you beat that?`;
+  if (choice === "puzzle") {
+    return `${shareHeader(result.puzzleDate)}\n\nI couldn't crack this one. Can you?`;
+  }
+
+  return `${shareHeader(result.puzzleDate)}\n\nI solved it ${resultPhrase(result, choice)}. Can you beat that?`;
 }
 
 // The message and the link, with a blank line before the link.
@@ -520,12 +552,16 @@ function compareWithChallenge(data) {
   return "tied";
 }
 
+let lastChallengeOutcome = "";
+
 function renderChallengeResult(data) {
   const outcome = compareWithChallenge(data);
   const element = $("challenge-result");
+  lastChallengeOutcome = outcome || "";
 
   if (!outcome) {
     element.hidden = true;
+    $("rematch-button").hidden = true;
     return;
   }
 
@@ -540,6 +576,7 @@ function renderChallengeResult(data) {
 
   element.textContent = messages[outcome];
   element.hidden = false;
+  $("rematch-button").hidden = false;
 
   trackAnalyticsOnce("challenge_completed", {
     game_name: "Brain Arcade",
@@ -551,13 +588,35 @@ function renderChallengeResult(data) {
 function updateSharePreview() {
   if (!shareResult) return;
 
-  $("share-preview").textContent = buildFullShare(shareResult, getShareChoice());
+  const choice = getShareChoice();
+  const full = buildFullShare(shareResult, choice);
+
+  $("share-preview").textContent = full;
+  $("whatsapp-button").href = `https://wa.me/?text=${encodeURIComponent(full)}`;
+  $("share-note").textContent = SHARE_NOTES[choice] || SHARE_NOTES.attempts;
   setShareStatus("");
 }
 
 function setShareStatus(message, isError = false) {
   $("share-status").textContent = message;
   $("share-status").className = isError ? "share-status error" : "share-status";
+}
+
+// Show only the options that make sense, and round the ends of the visible group.
+function layoutShareChoices(solved) {
+  const visible = solved ? ["attempts", "time", "record"] : ["puzzle", "record"];
+  const labels = Array.from(document.querySelectorAll("#share-choice .choice"));
+
+  labels.forEach((label) => {
+    label.hidden = !visible.includes(label.querySelector("input").value);
+    label.classList.remove("choice-first", "choice-last");
+  });
+
+  const shown = labels.filter((label) => !label.hidden);
+  if (shown.length) {
+    shown[0].classList.add("choice-first");
+    shown[shown.length - 1].classList.add("choice-last");
+  }
 }
 
 function renderShare(data) {
@@ -572,24 +631,26 @@ function renderShare(data) {
     elapsedSeconds: Number.isFinite(data.elapsedSeconds) ? data.elapsedSeconds : 0
   };
 
+  layoutShareChoices(shareResult.solved);
+
+  let defaultChoice = shareResult.solved ? "attempts" : "puzzle";
+
   try {
     const saved = localStorage.getItem(SHARE_CHOICE_KEY);
-    const radio = document.querySelector(`input[name="share-content"][value="${saved === "time" ? "time" : "attempts"}"]`);
-    if (radio) radio.checked = true;
+    if (shareResult.solved && saved === "time") defaultChoice = "time";
   } catch (error) {
     // A saved choice is only a convenience.
   }
 
-  $("share-choice").hidden = !shareResult.solved;
+  const radio = document.querySelector(`input[name="share-content"][value="${defaultChoice}"]`);
+  if (radio) radio.checked = true;
+
   $("share-heading").textContent = shareResult.solved ? "Challenge a friend" : "Challenge a friend to try it";
-  $("share-note").textContent = shareResult.solved
-    ? "The link carries your result, so your friend can try to beat it."
-    : "No result is shared. Your friend just gets the puzzle.";
 
   const canShare = typeof navigator.share === "function";
   $("share-button").hidden = !canShare;
   $("copy-button").className = canShare ? "secondary-button" : "primary-button";
-  $("copy-button").textContent = canShare ? "Copy result" : "Copy result to share";
+  $("copy-button").textContent = canShare ? "Copy" : "Copy to share";
 
   updateSharePreview();
   panel.hidden = false;
@@ -669,9 +730,37 @@ async function shareResultNatively() {
   }
 }
 
+function trackWhatsAppShare() {
+  trackAnalytics("share_result", {
+    game_name: "Brain Arcade",
+    method: "whatsapp",
+    content: getShareChoice()
+  });
+}
+
+// One tap from "your friend did better" to a new challenge.
+async function challengeBack() {
+  if (!shareResult) return;
+
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  $("share-panel").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+
+  trackAnalytics("challenge_rematch", {
+    game_name: "Brain Arcade",
+    outcome: lastChallengeOutcome || "none"
+  });
+
+  if (typeof navigator.share === "function") {
+    await shareResultNatively();
+  } else {
+    await copyResult();
+  }
+}
+
 function saveShareChoice() {
   try {
-    localStorage.setItem(SHARE_CHOICE_KEY, getShareChoice());
+    const choice = getShareChoice();
+    if (choice === "time" || choice === "attempts") localStorage.setItem(SHARE_CHOICE_KEY, choice);
   } catch (error) {
     // A saved choice is only a convenience.
   }
@@ -836,6 +925,8 @@ document.querySelectorAll('input[name="share-content"]').forEach((radio) => {
 });
 $("share-button").addEventListener("click", shareResultNatively);
 $("copy-button").addEventListener("click", copyResult);
+$("whatsapp-button").addEventListener("click", trackWhatsAppShare);
+$("rematch-button").addEventListener("click", challengeBack);
 
 renderChallengeBanner();
 renderRecord();

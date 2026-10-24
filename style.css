@@ -372,11 +372,11 @@ h2 {
   justify-content: center;
   min-width: 0;
   min-height: 48px;
-  padding: 0 10px;
+  padding: 0 6px;
   border: 1px solid var(--accent);
   background: var(--paper);
   color: var(--accent-dark);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.25;
   text-align: center;
@@ -384,13 +384,20 @@ h2 {
   transition: background 0.2s, color 0.2s;
 }
 
-.choice:first-of-type {
+.choice + .choice {
+  margin-left: -1px;
+}
+
+.choice-first {
   border-radius: 12px 0 0 12px;
 }
 
-.choice:last-of-type {
-  margin-left: -1px;
+.choice-last {
   border-radius: 0 12px 12px 0;
+}
+
+.choice-first.choice-last {
+  border-radius: 12px;
 }
 
 /* The radio stays in the page for keyboards and screen readers, but is not drawn. */
@@ -444,7 +451,8 @@ h2 {
   gap: 10px;
 }
 
-.share-actions button {
+.share-actions button,
+.share-actions a {
   flex: 1 1 140px;
 }
 
@@ -464,6 +472,16 @@ h2 {
 
 .secondary-button:hover {
   background: #efedff;
+}
+
+.share-actions a.secondary-button {
+  text-decoration: none;
+}
+
+.rematch {
+  display: flex;
+  width: 100%;
+  margin: -6px 0 22px;
 }
 
 .share-status {

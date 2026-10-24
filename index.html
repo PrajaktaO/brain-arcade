@@ -5,6 +5,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Brain Arcade — Daily Puzzle</title>
+  <meta name="description" content="One puzzle a day. Three attempts. How fast can you solve it?">
+  <meta name="theme-color" content="#f4f3fb">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Brain Arcade">
+  <meta property="og:title" content="Brain Arcade: a daily puzzle for your brain">
+  <meta property="og:description" content="One puzzle a day. Three attempts. Can you beat your friends?">
+  <meta property="og:url" content="https://prajaktao.github.io/brain-arcade/">
+  <meta property="og:image" content="https://prajaktao.github.io/brain-arcade/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Brain Arcade: a daily puzzle for your brain">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Brain Arcade: a daily puzzle for your brain">
+  <meta name="twitter:description" content="One puzzle a day. Three attempts. Can you beat your friends?">
+  <meta name="twitter:image" content="https://prajaktao.github.io/brain-arcade/og-image.png">
   <link rel="stylesheet" href="style.css">
   <script src="script.js" defer></script>
   
@@ -86,6 +101,7 @@
       </div>
       <p id="record-completion" class="record record-line" hidden></p>
       <p id="challenge-result" class="challenge-result" role="status" hidden></p>
+      <button id="rematch-button" class="secondary-button rematch" type="button" hidden>Challenge them back</button>
       <section id="share-panel" class="share-panel" aria-labelledby="share-heading" hidden>
         <h3 id="share-heading">Challenge a friend</h3>
         <fieldset id="share-choice" class="share-choice">
@@ -98,12 +114,21 @@
             <input type="radio" name="share-content" value="time">
             <span>Time</span>
           </label>
+          <label class="choice" hidden>
+            <input type="radio" name="share-content" value="puzzle">
+            <span>Puzzle only</span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="share-content" value="record">
+            <span>My record</span>
+          </label>
         </fieldset>
         <p id="share-preview" class="share-preview"></p>
         <p id="share-note" class="share-note">The link carries your result, so your friend can try to beat it.</p>
         <div class="share-actions">
           <button id="share-button" class="primary-button" type="button" hidden>Share</button>
-          <button id="copy-button" class="secondary-button" type="button">Copy result</button>
+          <a id="whatsapp-button" class="secondary-button" href="https://wa.me/" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          <button id="copy-button" class="secondary-button" type="button">Copy</button>
         </div>
         <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
       </section>

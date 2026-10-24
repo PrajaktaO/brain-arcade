@@ -50,6 +50,8 @@ def main(out_dir, url, key):
 
     (out / "script.js").write_text(script, encoding="utf-8")
     (out / "index.html").write_text(html, encoding="utf-8")
+    if (src / "og-image.png").exists():
+        (out / "og-image.png").write_bytes((src / "og-image.png").read_bytes())
     (out / "style.css").write_text((src / "style.css").read_text(encoding="utf-8"), encoding="utf-8")
     (out / "README.md").write_text(
         "# brain-arcade-staging\n\nTest copy of the Brain Arcade site, built from the `v2-development` branch of "
