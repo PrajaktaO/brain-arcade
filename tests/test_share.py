@@ -305,6 +305,88 @@ try:
         page.screenshot(path=os.path.join(SHOTS, "phone_challenge_welcome.png"))
         ctx.close()
 
+        # ---- I. activity tracking ----
+        def events(page):
+            return [(a[1], a[2] if len(a) > 2 else {}) for a in page.evaluate("Array.from(window.dataLayer || []).map(a => Array.from(a))") if a and a[0] == "event"]
+
+        def names(page):
+            return [n for n, _ in events(page)]
+
+        def first(page, name):
+            return next((p for n, p in events(page) if n == name), None)
+
+        SESSION = "22222222-2222-4222-8222-222222222222"
+        ctx, page, calls = make_context(browser, {
+            "start": [snapshot()],
+            "hint": [dict(snapshot(hintsUsed=1), hint="It makes music.")],
+            "guess": [dict(snapshot(attempts=1, hintsUsed=1), correct=False, message="Not quite."),
+                      snapshot(attempts=2, hintsUsed=1, elapsedSeconds=90, **SOLVED)],
+        }, storage={"brainArcadeSessionId": SESSION})
+        page.goto(BASE)
+        page.click("#start-button")
+        page.wait_for_selector("#game-screen:not([hidden])")
+        page.click("#hint-button")
+        page.wait_for_selector("#hint-box:not([hidden])")
+        for word in ("secretguess", "piano"):
+            page.fill("#answer-input", word)
+            page.click("#submit-button")
+            page.wait_for_timeout(250)
+        page.wait_for_selector("#completion-screen:not([hidden])")
+        ev = names(page)
+        check("I1 funnel events in order", [n for n in ev if n in ("puzzle_started", "hint_used", "answer_submitted", "puzzle_completed")] == ["puzzle_started", "hint_used", "answer_submitted", "answer_submitted", "puzzle_completed"], str(ev))
+        check("I2 started carries category and puzzle date", first(page, "puzzle_started") == {"game_name": "Brain Arcade", "puzzle_category": "Wordplay", "puzzle_date": "2026-10-19"}, str(first(page, "puzzle_started")))
+        check("I3 completed carries date, attempts, hints, time", first(page, "puzzle_completed") == {"game_name": "Brain Arcade", "puzzle_date": "2026-10-19", "solved": True, "attempts_used": 2, "hints_used": 1, "completion_time_seconds": 90}, str(first(page, "puzzle_completed")))
+        check("I4 hint and answer events carry the puzzle date", first(page, "hint_used")["puzzle_date"] == "2026-10-19" and first(page, "answer_submitted")["puzzle_date"] == "2026-10-19")
+        check("I5 a fresh play is not reported as resumed", "puzzle_resumed" not in ev)
+        blob = json.dumps(events(page))
+        check("I6 no answer text, session id or answer in any event", "secretguess" not in blob and SESSION not in blob and "piano" not in blob.lower() and "A piano" not in blob, blob[:200])
+        page.check('input[value="time"]', force=True)
+        check("I7 changing the share choice is recorded", {"game_name": "Brain Arcade", "content": "time"} in [p for n, p in events(page) if n == "share_choice_changed"])
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"start": [snapshot(attempts=1, hintsUsed=1)]}, storage={"brainArcadeSessionId": SESSION})
+        page.goto(BASE)
+        page.click("#start-button")
+        page.wait_for_selector("#game-screen:not([hidden])")
+        check("I8 returning to a game in progress", first(page, "puzzle_resumed") == {"game_name": "Brain Arcade", "puzzle_date": "2026-10-19", "state": "in_progress"}, str(first(page, "puzzle_resumed")))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"start": [snapshot(attempts=1, elapsedSeconds=61, **SOLVED)]}, storage={"brainArcadeSessionId": SESSION})
+        page.goto(BASE)
+        page.click("#start-button")
+        page.wait_for_selector("#completion-screen:not([hidden])")
+        check("I9 returning to a finished puzzle", first(page, "puzzle_resumed") == {"game_name": "Brain Arcade", "puzzle_date": "2026-10-19", "state": "completed"}, str(first(page, "puzzle_resumed")))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"start": [{"error": "boom"}]})
+        page.goto(BASE)
+        page.click("#start-button")
+        page.wait_for_function("document.getElementById('welcome-error').textContent.length > 0")
+        check("I10 failed start is recorded with status only", first(page, "game_error") == {"game_name": "Brain Arcade", "action": "start", "status_code": 500}, str(first(page, "game_error")))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [{"error": "boom"}]})
+        page.goto(BASE)
+        page.click("#start-button")
+        page.wait_for_selector("#game-screen:not([hidden])")
+        page.fill("#answer-input", "x")
+        page.click("#submit-button")
+        page.wait_for_function("document.getElementById('feedback').textContent.includes('may not have been recorded')")
+        check("I11 failed answer is recorded", first(page, "game_error") == {"game_name": "Brain Arcade", "action": "guess", "status_code": 500}, str(first(page, "game_error")))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {
+            "start": [snapshot()],
+            "guess": [snapshot(attempts=1, elapsedSeconds=20, **SOLVED)],
+        }, init_script=stub)
+        play_to_solution(page)
+        page.evaluate("(() => { window.__shareBehaviour = () => Promise.reject(Object.assign(new Error('cancel'), {name: 'AbortError'})); })()")
+        page.click("#share-button")
+        page.wait_for_function("window.__shared.length === 1")
+        page.wait_for_timeout(200)
+        check("I12 closing the share sheet is recorded as dismissed, not shared", "share_dismissed" in names(page) and "share_result" not in names(page), str(names(page)))
+        ctx.close()
+
         browser.close()
 finally:
     server.terminate()
