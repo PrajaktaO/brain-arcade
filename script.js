@@ -33,6 +33,15 @@ function trackAnalytics(eventName, parameters = {}) {
   }
 }
 
+// Record a failed request without sending any message text or identifier.
+function trackError(action, error) {
+  trackAnalytics("game_error", {
+    game_name: "Brain Arcade",
+    action,
+    status_code: (error && error.status) || 0
+  });
+}
+
 // NEW: Prevent duplicate events for the same session.
 function trackAnalyticsOnce(eventName, parameters = {}) {
   if (!sessionId || typeof window.gtag !== "function") return;
@@ -176,7 +185,17 @@ function displayGame(data) {
   if (!gameCompleted) {
     trackAnalyticsOnce("puzzle_started", {
       game_name: "Brain Arcade",
-      puzzle_category: data.category
+      puzzle_category: data.category,
+      puzzle_date: data.puzzleDate
+    });
+  }
+
+  // A player coming back to a puzzle that already has progress.
+  if (data.completed || data.attempts > 0 || data.hintsUsed > 0) {
+    trackAnalytics("puzzle_resumed", {
+      game_name: "Brain Arcade",
+      puzzle_date: data.puzzleDate,
+      state: data.completed ? "completed" : "in_progress"
     });
   }
 
@@ -194,8 +213,10 @@ function renderCompletion(data) {
   // NEW: Record the outcome once per session.
   trackAnalyticsOnce("puzzle_completed", {
     game_name: "Brain Arcade",
+    puzzle_date: data.puzzleDate,
     solved: Boolean(data.solved),
     attempts_used: data.attempts,
+    hints_used: data.hintsUsed || 0,
     completion_time_seconds: data.elapsedSeconds
   });
 
@@ -560,7 +581,13 @@ async function shareResultNatively() {
     });
   } catch (error) {
     // Closing the share sheet is not an error.
-    if (error && error.name === "AbortError") return;
+    if (error && error.name === "AbortError") {
+      trackAnalytics("share_dismissed", {
+        game_name: "Brain Arcade",
+        content: choice
+      });
+      return;
+    }
     await copyResult();
   }
 }
@@ -573,6 +600,11 @@ function saveShareChoice() {
   }
 
   updateSharePreview();
+
+  trackAnalytics("share_choice_changed", {
+    game_name: "Brain Arcade",
+    content: getShareChoice()
+  });
 }
 
 async function startGame() {
@@ -603,6 +635,7 @@ async function startGame() {
     displayGame(data);
   } catch (error) {
     console.error(error);
+    trackError("start", error);
     showError(
       `${error.message} Check your Supabase URL, publishable key and Edge Function deployment.`
     );
@@ -639,6 +672,7 @@ async function submitAnswer(event) {
     // NEW: Record each answer submission without sending the answer text.
     trackAnalytics("answer_submitted", {
       game_name: "Brain Arcade",
+      puzzle_date: data.puzzleDate,
       is_correct: Boolean(data.correct),
       attempt_number: data.attempts
     });
@@ -659,6 +693,7 @@ async function submitAnswer(event) {
     input.focus();
   } catch (error) {
     console.error(error);
+    trackError("guess", error);
     $("feedback").textContent =
       `${error.message} Your answer may not have been recorded.`;
     $("feedback").className = "feedback error";
@@ -693,6 +728,7 @@ async function requestHint() {
       // NEW: Count a hint only when the server returns one.
       trackAnalytics("hint_used", {
         game_name: "Brain Arcade",
+        puzzle_date: data.puzzleDate,
         hint_number: displayedHints.length
       });
     } else {
@@ -704,6 +740,7 @@ async function requestHint() {
     startVisibleTimer(data.elapsedSeconds || 0);
   } catch (error) {
     console.error(error);
+    trackError("hint", error);
     $("feedback").textContent = error.message;
     $("feedback").className = "feedback error";
   } finally {
