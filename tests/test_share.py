@@ -387,6 +387,67 @@ try:
         check("I12 closing the share sheet is recorded as dismissed, not shared", "share_dismissed" in names(page) and "share_result" not in names(page), str(names(page)))
         ctx.close()
 
+        # ---- J. personal record: "Out of N puzzles so far, you have played X and solved Y" ----
+        from datetime import date as _date
+        N = (datetime.now(ZoneInfo("Asia/Kolkata")).date() - _date(2026, 10, 14)).days + 1
+
+        def sentence(played, solved):
+            return f"Out of {N} puzzle{'s' if N != 1 else ''} so far, you've played {played} and solved {solved}."
+
+        def record_text(page, which):
+            sel = "#record-" + which
+            return page.inner_text(sel) if page.is_visible(sel) else ""
+
+        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, elapsedSeconds=90, **SOLVED)]})
+        page.goto(BASE)
+        check("J0 no record shown to a brand new player", record_text(page, "welcome") == "")
+        page.click("#start-button")
+        page.wait_for_selector("#game-screen:not([hidden])")
+        page.fill("#answer-input", "piano")
+        page.click("#submit-button")
+        page.wait_for_selector("#completion-screen:not([hidden])")
+        check("J1 first solved puzzle is counted", record_text(page, "completion") == sentence(1, 1), record_text(page, "completion"))
+        stored = page.evaluate("JSON.parse(localStorage.getItem('brainArcadeRecord'))")
+        check("J1b only counts are stored, no answer or identifier", stored == {"v": 1, "puzzles": {"2026-10-19": {"s": 1, "a": 2, "h": 0, "t": 90}}}, str(stored))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=3, completed=True, solved=False, correct=False, answer="A piano", explanation="x")]})
+        play_to_solution(page)
+        check("J2 a failed puzzle counts as played, not solved", record_text(page, "completion") == sentence(1, 0), record_text(page, "completion"))
+        ctx.close()
+
+        seeded = json.dumps({"v": 1, "puzzles": {
+            "2026-10-14": {"s": 1, "a": 1, "h": 0, "t": 30}, "2026-10-15": {"s": 0, "a": 3, "h": 1, "t": 200}, "2026-10-16": {"s": 1, "a": 2, "h": 0, "t": 80},
+            "2026-10-10": {"s": 1, "a": 1, "h": 0, "t": 10}, "2099-01-01": {"s": 1, "a": 1, "h": 0, "t": 10}, "not-a-date": {"s": 1}}})
+        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, elapsedSeconds=90, **SOLVED)]}, storage={"brainArcadeRecord": seeded})
+        page.goto(BASE)
+        check("J3 welcome screen shows the saved record (before the start, after the end and bad dates ignored)", record_text(page, "welcome") == sentence(3, 2), record_text(page, "welcome"))
+        page.click("#start-button")
+        page.wait_for_selector("#game-screen:not([hidden])")
+        page.fill("#answer-input", "piano")
+        page.click("#submit-button")
+        page.wait_for_selector("#completion-screen:not([hidden])")
+        check("J4 today's result is added to the earlier ones", record_text(page, "completion") == sentence(4, 3), record_text(page, "completion"))
+        ctx.close()
+
+        again = json.dumps({"v": 1, "puzzles": {"2026-10-19": {"s": 1, "a": 1, "h": 0, "t": 30}}})
+        ctx, page, calls = make_context(browser, {"start": [snapshot(attempts=1, elapsedSeconds=30, **SOLVED)]}, storage={"brainArcadeRecord": again})
+        page.goto(BASE)
+        page.click("#start-button")
+        page.wait_for_selector("#completion-screen:not([hidden])")
+        check("J5 reopening a finished puzzle does not count it twice", record_text(page, "completion") == sentence(1, 1), record_text(page, "completion"))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=1, elapsedSeconds=20, **SOLVED)]}, storage={"brainArcadeRecord": "this is not json"})
+        play_to_solution(page)
+        check("J6 a damaged record does not break the game", page.is_visible("#completion-screen") and record_text(page, "completion") == sentence(1, 1), record_text(page, "completion"))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=1, elapsedSeconds=20, **SOLVED)]})
+        play_to_solution(page)
+        page.screenshot(path=os.path.join(SHOTS, "record_completion.png"), full_page=True)
+        ctx.close()
+
         browser.close()
 finally:
     server.terminate()
