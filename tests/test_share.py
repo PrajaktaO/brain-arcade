@@ -88,26 +88,24 @@ try:
         })
         play_to_solution(page)
         check("A1 share panel visible after a solve", page.is_visible("#share-panel"))
-        check("A2 default is attempts and hints", page.is_checked('input[value="attempts"]'))
+        check("A2 default is my result", page.is_checked('input[value="result"]'))
         preview = page.inner_text("#share-preview")
-        check("A3 attempts preview text", preview == "🧠 🧩 Brain Arcade #6\n\nI solved it in 2 tries with 1 hint. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1", repr(preview))
-        page.check('input[value="time"]', force=True)
-        preview = page.inner_text("#share-preview")
-        check("A4 time preview text", preview == "🧠 🧩 Brain Arcade #6\n\nI solved it in 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&t=134", repr(preview))
-        check("A5 choice saved", page.evaluate("localStorage.getItem('brainArcadeShareChoice')") == "time")
+        full = "🧠 🧩 Brain Arcade #6\n\nI solved it in 2 tries with 1 hint, taking 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1&t=134"
+        check("A3 result preview has tries, hints and time", preview == full, repr(preview))
+        check("A4 attempts and time are no longer separate choices", page.locator('input[value="time"], input[value="attempts"]').count() == 0)
         check("A6 native share button hidden when unsupported", not page.is_visible("#share-button"))
         check("A7 copy button is the primary action when sharing unsupported", "primary-button" in page.get_attribute("#copy-button", "class"))
         page.click("#copy-button")
         page.wait_for_function("document.getElementById('share-status').textContent.length > 0")
         copied = page.evaluate("navigator.clipboard.readText()")
-        check("A8 clipboard text has message and a link carrying the time", copied == "🧠 🧩 Brain Arcade #6\n\nI solved it in 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&t=134", repr(copied))
+        check("A8 clipboard text has message and a link carrying the time", copied == full, repr(copied))
         check("A9 copied status shown", "Copied" in page.inner_text("#share-status"))
         check("A10 answer and explanation never in share text", "piano" not in copied.lower() and "keys" not in copied.lower())
         radios = page.get_by_role("radio").all()
-        check("A11 radios have accessible names", [r.evaluate("e => e.labels[0].innerText") for r in radios] == ["Attempts & hints", "Time", "My record"])
-        page.focus('input[value="time"]')
-        page.keyboard.press("ArrowLeft")
-        check("A12 keyboard arrow changes choice", page.is_checked('input[value="attempts"]'))
+        check("A11 radios have accessible names", [r.evaluate("e => e.labels[0].innerText") for r in radios] == ["My result", "My record"])
+        page.focus('input[value="result"]')
+        page.keyboard.press("ArrowRight")
+        check("A12 keyboard arrow changes choice", page.is_checked('input[value="record"]'))
         page.screenshot(path=os.path.join(SHOTS, "desktop_completion.png"), full_page=True)
         ctx.close()
 
@@ -128,16 +126,16 @@ try:
         check("B5 copied text matches preview, no answer", copied == preview and "piano" not in copied.lower(), repr(copied))
         ctx.close()
 
-        # ---- C. reload of a completed puzzle restores the panel and the saved choice ----
+        # ---- C. reload of a completed puzzle restores the panel ----
         ctx, page, calls = make_context(browser, {
             "start": [snapshot(attempts=1, hintsUsed=0, elapsedSeconds=61, **SOLVED)],
-        }, storage={"brainArcadeShareChoice": "time", "brainArcadeSessionId": "11111111-1111-4111-8111-111111111111"})
+        }, storage={"brainArcadeSessionId": "11111111-1111-4111-8111-111111111111"})
         page.goto(BASE)
         page.click("#start-button")
         page.wait_for_selector("#completion-screen:not([hidden])")
         check("C1 panel visible after reload of a solved puzzle", page.is_visible("#share-panel"))
-        check("C2 saved choice restored", page.is_checked('input[value="time"]'))
-        check("C3 time preview after reload", "01:01" in page.inner_text("#share-preview"))
+        check("C2 result is the default after reload", page.is_checked('input[value="result"]'))
+        check("C3 result preview after reload", "01:01" in page.inner_text("#share-preview") and "1 try with no hints" in page.inner_text("#share-preview"))
         ctx.close()
 
         # ---- D. singular and plural wording ----
@@ -165,7 +163,7 @@ try:
         page.click("#share-button")
         page.wait_for_function("window.__shared.length === 1")
         shared = page.evaluate("window.__shared[0]")
-        check("E3 native share payload", shared == {"title": "Brain Arcade", "text": "🧠 🧩 Brain Arcade #6\n\nI solved it in 2 tries with 1 hint. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1"}, repr(shared))
+        check("E3 native share payload", shared == {"title": "Brain Arcade", "text": "🧠 🧩 Brain Arcade #6\n\nI solved it in 2 tries with 1 hint, taking 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1&t=134"}, repr(shared))
         # user cancels the share sheet: no error, no copy
         page.evaluate("(() => { window.__shareBehaviour = () => Promise.reject(Object.assign(new Error('cancel'), {name: 'AbortError'})); })()")
         page.click("#share-button")
@@ -294,12 +292,11 @@ try:
         finish(page)
         events = datalayer(page)
         check("H6 completion outcome recorded", ["event", "challenge_completed", {"game_name": "Brain Arcade", "challenge_type": "time", "outcome": "beat"}] in events, str(events))
-        page.check('input[value="time"]', force=True)
         page.click("#copy-button")
         page.wait_for_function("document.getElementById('share-status').textContent.length > 0")
         copied = page.evaluate("navigator.clipboard.readText()")
-        check("H7 new link carries own result, not the friend's", "t=134" in copied and "t=200" not in copied, copied)
-        check("H8 sharing is recorded with method and content", ["event", "share_result", {"game_name": "Brain Arcade", "method": "copy", "content": "time"}] in datalayer(page))
+        check("H7 new link carries own result, not the friend's", "t=134" in copied and "t=200" not in copied and "a=2" in copied, copied)
+        check("H8 sharing is recorded with method and content", ["event", "share_result", {"game_name": "Brain Arcade", "method": "copy", "content": "result"}] in datalayer(page))
         ctx.close()
 
         ctx, page = open_challenge(f"?d={TODAY}&t=200", dict(attempts=1, hintsUsed=0, elapsedSeconds=30, **SOLVED))
@@ -341,8 +338,8 @@ try:
         check("I5 a fresh play is not reported as resumed", "puzzle_resumed" not in ev)
         blob = json.dumps(events(page))
         check("I6 no answer text, session id or answer in any event", "secretguess" not in blob and SESSION not in blob and "piano" not in blob.lower() and "A piano" not in blob, blob[:200])
-        page.check('input[value="time"]', force=True)
-        check("I7 changing the share choice is recorded", {"game_name": "Brain Arcade", "content": "time"} in [p for n, p in events(page) if n == "share_choice_changed"])
+        page.check('input[value="record"]', force=True)
+        check("I7 changing the share choice is recorded", {"game_name": "Brain Arcade", "content": "record"} in [p for n, p in events(page) if n == "share_choice_changed"])
         ctx.close()
 
         ctx, page, calls = make_context(browser, {"start": [snapshot(attempts=1, hintsUsed=1)]}, storage={"brainArcadeSessionId": SESSION})
@@ -397,7 +394,7 @@ try:
 
         def record_text(page, which):
             sel = "#record-" + which
-            return page.inner_text(sel) if page.is_visible(sel) else ""
+            return page.get_attribute(sel, "aria-label") if page.is_visible(sel) else ""
 
         ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, elapsedSeconds=90, **SOLVED)]})
         page.goto(BASE)
@@ -448,6 +445,24 @@ try:
         play_to_solution(page)
         page.screenshot(path=os.path.join(SHOTS, "record_completion.png"), full_page=True)
         ctx.close()
+
+        # ---- L. combined result links (tries, hints and time) ----
+        for q, final, want in [
+            (f"?d={TODAY}&a=2&h=1&t=134", dict(attempts=2, hintsUsed=1, elapsedSeconds=100, **SOLVED), "beat"),
+            (f"?d={TODAY}&a=2&h=1&t=134", dict(attempts=2, hintsUsed=1, elapsedSeconds=134, **SOLVED), "tied"),
+            (f"?d={TODAY}&a=2&h=1&t=134", dict(attempts=2, hintsUsed=1, elapsedSeconds=200, **SOLVED), "behind"),
+            (f"?d={TODAY}&a=2&h=1&t=134", dict(attempts=1, hintsUsed=2, elapsedSeconds=500, **SOLVED), "beat"),
+        ]:
+            ctx, page = open_challenge(q)
+            if q.endswith("t=134") and want == "beat" and final["elapsedSeconds"] == 100:
+                check("L1 combined challenge banner", page.inner_text("#challenge-banner") == f"Your friend solved {pn} in 2 tries with 1 hint, taking 02:14. Can you beat that?", page.inner_text("#challenge-banner"))
+            ctx.close()
+            ctx, page = open_challenge(q, final)
+            finish(page)
+            got = page.inner_text("#challenge-result")
+            msg = {"beat": "beat", "tied": "matched", "behind": "a little better"}[want]
+            check(f"L2 combined challenge {want} ({final['attempts']} tries, {final['elapsedSeconds']}s)", msg in got, got)
+            ctx.close()
 
         # ---- K. WhatsApp, record sharing, rematch, link preview ----
         ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, hintsUsed=1, elapsedSeconds=134, **SOLVED)]}, init_script=stub)
