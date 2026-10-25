@@ -10,6 +10,9 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_QiA46lLVhKe2tk0m5_yJIA_kKmnv2WV
 const FUNCTION_NAME = "swift-task";
 const ARCHIVE_FUNCTION_NAME = "archive-api";
 
+// Past puzzles are built but switched off until the archive backend is live.
+const ARCHIVE_ENABLED = true;
+
 const $ = (id) => document.getElementById(id);
 
 const welcomeScreen = $("welcome-screen");
@@ -251,7 +254,7 @@ function renderCompletion(data) {
 
   const number = puzzleNumber(data.puzzleDate);
   $("solution-eyebrow").textContent = archiveDate ? "THIS PUZZLE" : "TODAY'S PUZZLE";
-  $("archive-nav").hidden = false;
+  $("archive-nav").hidden = !ARCHIVE_ENABLED;
   $("archive-nav-today").hidden = !archiveDate;
   $("archive-nav-calendar").textContent = archiveDate ? "Pick another puzzle" : "Play past puzzles";
   $("closing-note").textContent = archiveDate
@@ -576,7 +579,7 @@ function challengeAsResult() {
 // A friend's link to a puzzle from the archive opens that puzzle.
 function challengeIsPastPuzzle() {
   const today = todayInIndia();
-  return Boolean(challenge && today && challenge.date >= PUZZLE_ONE_DATE && challenge.date < today);
+  return Boolean(ARCHIVE_ENABLED && challenge && today && challenge.date >= PUZZLE_ONE_DATE && challenge.date < today);
 }
 
 function startButtonLabel() {
@@ -1245,6 +1248,8 @@ function noticeSeen() {
 }
 
 $("record-notice").hidden = noticeSeen();
+$("archive-open-button").hidden = !ARCHIVE_ENABLED;
+$("notice-archive").hidden = !ARCHIVE_ENABLED;
 $("record-notice-close").addEventListener("click", () => {
   $("record-notice").hidden = true;
   try {
