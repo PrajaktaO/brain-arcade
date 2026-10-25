@@ -768,3 +768,25 @@ button.cal-today:hover {
 .archive-nav[hidden] {
   display: none;
 }
+
+/* ---- One-time note about the record ---- */
+.notice {
+  max-width: 420px;
+  margin: 0 auto 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #faf9ff;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.notice p {
+  margin: 0 0 8px;
+}
+
+.notice[hidden] {
+  display: none;
+}

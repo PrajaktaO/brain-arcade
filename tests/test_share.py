@@ -620,6 +620,17 @@ try:
         page.screenshot(path=os.path.join(SHOTS, "phone_calendar.png"), full_page=True)
         ctx.close()
 
+        # ---- N. one-time note about the record ----
+        ctx, page, calls = make_context(browser, {"start": [snapshot()]})
+        page.goto(BASE)
+        note = page.inner_text("#record-notice") if page.is_visible("#record-notice") else ""
+        check("N1 note shown on first visit with both messages", "starts counting from today" in note and "saved in this browser only" in note and "history will be lost" in note, repr(note))
+        page.click("#record-notice-close")
+        check("N2 note closes", not page.is_visible("#record-notice"))
+        page.reload()
+        check("N3 note stays closed after a reload", not page.is_visible("#record-notice"))
+        ctx.close()
+
         browser.close()
 finally:
     server.terminate()
