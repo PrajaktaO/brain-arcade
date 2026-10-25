@@ -1233,6 +1233,27 @@ $("copy-button").addEventListener("click", copyResult);
 $("whatsapp-button").addEventListener("click", trackWhatsAppShare);
 $("rematch-button").addEventListener("click", challengeBack);
 
+// A one-time note about how the record works.
+const NOTICE_KEY = "brainArcadeRecordNoticeSeen";
+
+function noticeSeen() {
+  try {
+    return localStorage.getItem(NOTICE_KEY) === "1";
+  } catch (error) {
+    return false;
+  }
+}
+
+$("record-notice").hidden = noticeSeen();
+$("record-notice-close").addEventListener("click", () => {
+  $("record-notice").hidden = true;
+  try {
+    localStorage.setItem(NOTICE_KEY, "1");
+  } catch (error) {
+    // The note simply shows again next time.
+  }
+});
+
 renderChallengeBanner();
 renderRecord();
 $("start-button").textContent = startButtonLabel();
