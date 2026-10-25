@@ -393,7 +393,7 @@ try:
         N = (datetime.now(ZoneInfo("Asia/Kolkata")).date() - _date(2026, 10, 14)).days + 1
 
         def sentence(played, solved):
-            return f"Out of {N} puzzle{'s' if N != 1 else ''} so far, you've played {played} and solved {solved}."
+            return f"You've played {played} and solved {solved}."
 
         def record_text(page, which):
             sel = "#record-" + which
@@ -422,7 +422,7 @@ try:
             "2026-10-10": {"s": 1, "a": 1, "h": 0, "t": 10}, "2099-01-01": {"s": 1, "a": 1, "h": 0, "t": 10}, "not-a-date": {"s": 1}}})
         ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, elapsedSeconds=90, **SOLVED)]}, storage={"brainArcadeRecord": seeded})
         page.goto(BASE)
-        check("J3 welcome screen shows the saved record (before the start, after the end and bad dates ignored)", record_text(page, "welcome") == sentence(3, 2), record_text(page, "welcome"))
+        check("J3 the front page never shows the record", record_text(page, "welcome") == "" and page.locator("#record-welcome").count() == 0)
         page.click("#start-button")
         page.wait_for_selector("#game-screen:not([hidden])")
         page.fill("#answer-input", "piano")
@@ -563,7 +563,7 @@ try:
             rec = page.evaluate("JSON.parse(localStorage.getItem('brainArcadeRecord'))")
             check("M4f record updated for that day", rec["puzzles"].get("2026-10-19", {}).get("s") == 1, str(rec))
             page.click("#archive-nav-calendar")
-            page.wait_for_selector("#calendar-grid button")
+            page.wait_for_selector("#archive-screen:not([hidden]) #calendar-grid button.cal-solved")
             check("M5 solved day is marked", "cal-solved" in page.get_attribute('button[data-date="2026-10-19"]', "class") and "solved" in page.get_attribute('button[data-date="2026-10-19"]', "aria-label"))
             page.click("#archive-home-button")
             check("M5b back to today's puzzle", page.is_visible("#welcome-screen") and not page.is_visible("#archive-screen"))

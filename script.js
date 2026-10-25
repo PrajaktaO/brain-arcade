@@ -536,14 +536,15 @@ function recordTotals() {
 }
 
 function recordSentence(totals) {
-  return `Out of ${pluralise(totals.total, "puzzle", "puzzles")} so far, you've played ${totals.played} and solved ${totals.solved}.`;
+  return `You've played ${totals.played} and solved ${totals.solved}.`;
 }
 
 function renderRecord() {
   const totals = recordTotals();
   const show = totals.played > 0;
 
-  ["record-welcome", "record-completion"].forEach((id) => {
+  // The record shows after finishing a puzzle, not on the front page.
+  ["record-completion"].forEach((id) => {
     const element = $(id);
     element.hidden = !show;
     element.textContent = "";
@@ -553,7 +554,7 @@ function renderRecord() {
     // Three small tiles; the sentence is the accessible name.
     element.setAttribute("role", "group");
     element.setAttribute("aria-label", recordSentence(totals));
-    [["Puzzles so far", totals.total], ["Played", totals.played], ["Solved", totals.solved]].forEach(([label, value]) => {
+    [["Played", totals.played], ["Solved", totals.solved]].forEach(([label, value]) => {
       const tile = document.createElement("span");
       tile.className = "record-tile";
       tile.setAttribute("aria-hidden", "true");
