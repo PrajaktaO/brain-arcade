@@ -20,8 +20,7 @@ Every event also carries `game_name = "Brain Arcade"`. Events marked **once** ar
 | `hint_used` | The server gives a hint | `puzzle_date`, `hint_number` | How hard the puzzle felt; hint demand |
 | `answer_submitted` | An answer is checked | `puzzle_date`, `is_correct`, `attempt_number` | Where players fail: first try, second, third |
 | `puzzle_completed` **once** | The puzzle ends (solved or out of attempts) | `puzzle_date`, `solved`, `attempts_used`, `hints_used`, `completion_time_seconds` | Solve rate, time, difficulty per day |
-| `share_choice_changed` | The player flips the Attempts & hints / Time switch | `content` (`time` or `attempts`) | What people prefer to share |
-| `share_result` | A share or copy actually happens | `method` (`copy`, `native` or `whatsapp`), `content` (`result`, `puzzle`, `record` or `puzzle_invite`) | Share rate and what is shared. `puzzle` means shared after failing; `record` is the personal counter |
+| `share_result` | A share or copy actually happens | `method` (`copy`, `native` or `whatsapp`), `content` (`result` or `puzzle`; `puzzle_invite` only when past puzzles are on) | Share rate and what is shared. `result` carries tries, hints and time; `puzzle` means shared after failing |
 | `share_dismissed` | The phone's share sheet is closed without sharing | `content` | Friction: opened the share sheet but did not share |
 | `challenge_opened` | Someone opens a friend's challenge link | `challenge_type` (`time`, `attempts`, `puzzle`) | Virality: how many shares bring people in |
 | `challenge_completed` **once** | A challenged player finishes the same day's puzzle | `challenge_type`, `outcome` (`beat`, `tied`, `behind`, `unsolved`, `cracked`, `also_unsolved`) | Whether challenges are fun and finished |

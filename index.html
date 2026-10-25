@@ -48,11 +48,6 @@
       <h2>Ready to challenge yourself?</h2>
       <p>One puzzle. Three attempts. How quickly can you solve it?</p>
       <p id="challenge-banner" class="challenge-banner" role="status" hidden></p>
-      <div id="record-notice" class="notice" role="note" hidden>
-        <p><strong>New: your record.</strong> It starts counting from today.<span id="notice-archive"> Puzzles you play from the Past puzzles calendar count too.</span></p>
-        <p>Your record is saved in this browser only. If you switch browsers or clear your data, your history will be lost.</p>
-        <button id="record-notice-close" class="text-button" type="button">Got it</button>
-      </div>
       <button id="start-button" class="primary-button">Start today's puzzle</button>
       <button id="archive-open-button" class="secondary-button archive-open" type="button">Past puzzles</button>
       <p id="welcome-error" class="error-message" role="alert"></p>
@@ -124,26 +119,10 @@
         <span>Completion time</span>
         <strong id="completion-time">00:00</strong>
       </div>
-      <p id="record-completion" class="record record-line" hidden></p>
       <p id="challenge-result" class="challenge-result" role="status" hidden></p>
       <button id="rematch-button" class="secondary-button rematch" type="button" hidden>Challenge them back</button>
       <section id="share-panel" class="share-panel" aria-labelledby="share-heading" hidden>
         <h3 id="share-heading">Challenge a friend</h3>
-        <fieldset id="share-choice" class="share-choice">
-          <legend>What would you like to share?</legend>
-          <label class="choice">
-            <input type="radio" name="share-content" value="result" checked>
-            <span>My result</span>
-          </label>
-          <label class="choice" hidden>
-            <input type="radio" name="share-content" value="puzzle">
-            <span>Puzzle only</span>
-          </label>
-          <label class="choice">
-            <input type="radio" name="share-content" value="record">
-            <span>My record</span>
-          </label>
-        </fieldset>
         <p id="share-preview" class="share-preview"></p>
         <p id="share-note" class="share-note">The link carries your result, so your friend can try to beat it.</p>
         <div class="share-actions">

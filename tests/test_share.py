@@ -91,7 +91,7 @@ try:
         })
         play_to_solution(page)
         check("A1 share panel visible after a solve", page.is_visible("#share-panel"))
-        check("A2 default is my result", page.is_checked('input[value="result"]'))
+        check("A2 there is nothing to choose: no share switch", page.locator('input[name="share-content"]').count() == 0 and not page.is_visible("#share-choice"))
         preview = page.inner_text("#share-preview")
         full = "🧠 🧩 Brain Arcade #6\n\nI solved it in 2 tries with 1 hint, taking 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1&t=134"
         check("A3 result preview has tries, hints and time", preview == full, repr(preview))
@@ -104,11 +104,6 @@ try:
         check("A8 clipboard text has message and a link carrying the time", copied == full, repr(copied))
         check("A9 copied status shown", "Copied" in page.inner_text("#share-status"))
         check("A10 answer and explanation never in share text", "piano" not in copied.lower() and "keys" not in copied.lower())
-        radios = page.get_by_role("radio").all()
-        check("A11 radios have accessible names", [r.evaluate("e => e.labels[0].innerText") for r in radios] == ["My result", "My record"])
-        page.focus('input[value="result"]')
-        page.keyboard.press("ArrowRight")
-        check("A12 keyboard arrow changes choice", page.is_checked('input[value="record"]'))
         page.screenshot(path=os.path.join(SHOTS, "desktop_completion.png"), full_page=True)
         ctx.close()
 
@@ -119,7 +114,7 @@ try:
         })
         play_to_solution(page)
         check("B1 share panel shown when unsolved", page.is_visible("#share-panel"))
-        check("B2 no result choice offered when unsolved", [l.strip() for l in page.eval_on_selector_all(".choice:not([hidden])", "els => els.map(e => e.innerText)")] == ["Puzzle only", "My record"])
+        check("B2 no choice offered when unsolved", page.locator('input[name="share-content"]').count() == 0)
         preview = page.inner_text("#share-preview")
         check("B3 puzzle-only preview", preview == "🧠 🧩 Brain Arcade #6\n\nI couldn't crack this one. Can you?\n\n" + BASE + "?d=2026-10-19", repr(preview))
         check("B4 note says no result shared", "No result is shared" in page.inner_text("#share-note"))
@@ -137,7 +132,6 @@ try:
         page.click("#start-button")
         page.wait_for_selector("#completion-screen:not([hidden])")
         check("C1 panel visible after reload of a solved puzzle", page.is_visible("#share-panel"))
-        check("C2 result is the default after reload", page.is_checked('input[value="result"]'))
         check("C3 result preview after reload", "01:01" in page.inner_text("#share-preview") and "1 try with no hints" in page.inner_text("#share-preview"))
         ctx.close()
 
@@ -206,9 +200,7 @@ try:
         check("G1 no horizontal scroll at 320 px", overflow <= 0, f"overflow {overflow}px")
         box = page.eval_on_selector("#share-panel", "e => { const r = e.getBoundingClientRect(); return [r.left, r.right]; }")
         check("G2 share panel inside the 320 px screen", box[0] >= 0 and box[1] <= 320, str(box))
-        widths = page.eval_on_selector_all(".choice:not([hidden])", "els => els.map(e => Math.round(e.getBoundingClientRect().width))")
-        check("G3b both choices the same width, side by side", len(set(widths)) == 1, str(widths))
-        sizes = page.eval_on_selector_all(".choice:not([hidden]), #share-button, #copy-button, #whatsapp-button", "els => els.map(e => e.getBoundingClientRect().height)")
+        sizes = page.eval_on_selector_all("#share-button, #copy-button, #whatsapp-button", "els => els.map(e => e.getBoundingClientRect().height)")
         check("G3 touch targets at least 44 px", all(s >= 44 for s in sizes), str(sizes))
         page.screenshot(path=os.path.join(SHOTS, "phone_completion.png"), full_page=True)
         ctx.close()
@@ -341,8 +333,6 @@ try:
         check("I5 a fresh play is not reported as resumed", "puzzle_resumed" not in ev)
         blob = json.dumps(events(page))
         check("I6 no answer text, session id or answer in any event", "secretguess" not in blob and SESSION not in blob and "piano" not in blob.lower() and "A piano" not in blob, blob[:200])
-        page.check('input[value="record"]', force=True)
-        check("I7 changing the share choice is recorded", {"game_name": "Brain Arcade", "content": "record"} in [p for n, p in events(page) if n == "share_choice_changed"])
         ctx.close()
 
         ctx, page, calls = make_context(browser, {"start": [snapshot(attempts=1, hintsUsed=1)]}, storage={"brainArcadeSessionId": SESSION})
@@ -388,64 +378,16 @@ try:
         check("I12 closing the share sheet is recorded as dismissed, not shared", "share_dismissed" in names(page) and "share_result" not in names(page), str(names(page)))
         ctx.close()
 
-        # ---- J. personal record: "Out of N puzzles so far, you have played X and solved Y" ----
-        from datetime import date as _date
-        N = (datetime.now(ZoneInfo("Asia/Kolkata")).date() - _date(2026, 10, 14)).days + 1
-
-        def sentence(played, solved):
-            return f"You've played {played} and solved {solved}."
-
-        def record_text(page, which):
-            sel = "#record-" + which
-            return page.get_attribute(sel, "aria-label") if page.is_visible(sel) else ""
-
-        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, elapsedSeconds=90, **SOLVED)]})
-        page.goto(BASE)
-        check("J0 no record shown to a brand new player", record_text(page, "welcome") == "")
-        page.click("#start-button")
-        page.wait_for_selector("#game-screen:not([hidden])")
-        page.fill("#answer-input", "piano")
-        page.click("#submit-button")
-        page.wait_for_selector("#completion-screen:not([hidden])")
-        check("J1 first solved puzzle is counted", record_text(page, "completion") == sentence(1, 1), record_text(page, "completion"))
-        stored = page.evaluate("JSON.parse(localStorage.getItem('brainArcadeRecord'))")
-        check("J1b only counts are stored, no answer or identifier", stored == {"v": 1, "puzzles": {"2026-10-19": {"s": 1, "a": 2, "h": 0, "t": 90}}}, str(stored))
-        ctx.close()
-
-        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=3, completed=True, solved=False, correct=False, answer="A piano", explanation="x")]})
-        play_to_solution(page)
-        check("J2 a failed puzzle counts as played, not solved", record_text(page, "completion") == sentence(1, 0), record_text(page, "completion"))
-        ctx.close()
-
-        seeded = json.dumps({"v": 1, "puzzles": {
-            "2026-10-14": {"s": 1, "a": 1, "h": 0, "t": 30}, "2026-10-15": {"s": 0, "a": 3, "h": 1, "t": 200}, "2026-10-16": {"s": 1, "a": 2, "h": 0, "t": 80},
-            "2026-10-10": {"s": 1, "a": 1, "h": 0, "t": 10}, "2099-01-01": {"s": 1, "a": 1, "h": 0, "t": 10}, "not-a-date": {"s": 1}}})
-        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, elapsedSeconds=90, **SOLVED)]}, storage={"brainArcadeRecord": seeded})
-        page.goto(BASE)
-        check("J3 the front page never shows the record", record_text(page, "welcome") == "" and page.locator("#record-welcome").count() == 0)
-        page.click("#start-button")
-        page.wait_for_selector("#game-screen:not([hidden])")
-        page.fill("#answer-input", "piano")
-        page.click("#submit-button")
-        page.wait_for_selector("#completion-screen:not([hidden])")
-        check("J4 today's result is added to the earlier ones", record_text(page, "completion") == sentence(4, 3), record_text(page, "completion"))
-        ctx.close()
-
-        again = json.dumps({"v": 1, "puzzles": {"2026-10-19": {"s": 1, "a": 1, "h": 0, "t": 30}}})
-        ctx, page, calls = make_context(browser, {"start": [snapshot(attempts=1, elapsedSeconds=30, **SOLVED)]}, storage={"brainArcadeRecord": again})
-        page.goto(BASE)
-        page.click("#start-button")
-        page.wait_for_selector("#completion-screen:not([hidden])")
-        check("J5 reopening a finished puzzle does not count it twice", record_text(page, "completion") == sentence(1, 1), record_text(page, "completion"))
-        ctx.close()
-
-        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=1, elapsedSeconds=20, **SOLVED)]}, storage={"brainArcadeRecord": "this is not json"})
-        play_to_solution(page)
-        check("J6 a damaged record does not break the game", page.is_visible("#completion-screen") and record_text(page, "completion") == sentence(1, 1), record_text(page, "completion"))
-        ctx.close()
-
+        # ---- J. no record or notice anywhere ----
         ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=1, elapsedSeconds=20, **SOLVED)]})
-        play_to_solution(page)
+        page.goto(BASE)
+        check("J0 front page has no banner and no record", page.locator("#record-notice, #record-welcome, #record-completion").count() == 0 and "record" not in page.inner_text("body").lower())
+        page.click("#start-button")
+        page.wait_for_selector("#game-screen:not([hidden])")
+        page.fill("#answer-input", "piano")
+        page.click("#submit-button")
+        page.wait_for_selector("#completion-screen:not([hidden])")
+        check("J1 completion screen shows no record or totals", "puzzles so far" not in page.inner_text("body").lower() and "record" not in page.inner_text("#completion-screen").lower())
         page.screenshot(path=os.path.join(SHOTS, "record_completion.png"), full_page=True)
         ctx.close()
 
@@ -475,21 +417,10 @@ try:
         wa = parse_qs(urlparse(href).query).get("text", [""])[0]
         check("K1 WhatsApp link carries the full share text", href.startswith("https://wa.me/?text=") and wa == page.inner_text("#share-preview"), href)
         check("K1b WhatsApp opens in a new tab safely", page.get_attribute("#whatsapp-button", "target") == "_blank" and "noopener" in page.get_attribute("#whatsapp-button", "rel"))
-        page.click('label:has(input[value="record"])')
-        rec = page.inner_text("#share-preview")
-        total = (datetime.strptime(TODAY, "%Y-%m-%d") - datetime(2026, 10, 14)).days + 1
-        check("K2 record share text and plain link", rec == f"🧠 🧩 Brain Arcade\n\nI've solved 1 of {total} puzzles so far. Can you beat that?\n\n" + BASE, repr(rec))
-        check("K2b WhatsApp link follows the choice", "solved 1 of" in parse_qs(urlparse(page.get_attribute("#whatsapp-button", "href")).query)["text"][0])
         page.evaluate("window.dataLayer = []")
         page.evaluate("document.getElementById('whatsapp-button').addEventListener('click', e => e.preventDefault())")
         page.click("#whatsapp-button")
-        check("K3 WhatsApp share is recorded", ["event", "share_result", {"game_name": "Brain Arcade", "method": "whatsapp", "content": "record"}] in datalayer(page), str(datalayer(page)))
-        ctx.close()
-
-        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=3, completed=True, solved=False, correct=False, answer="A piano", explanation="x")]}, init_script=stub)
-        play_to_solution(page)
-        page.click('label:has(input[value="record"])')
-        check("K4 failed players can share their record", "solved 0 of" in page.inner_text("#share-preview"), page.inner_text("#share-preview"))
+        check("K3 WhatsApp share is recorded", ["event", "share_result", {"game_name": "Brain Arcade", "method": "whatsapp", "content": "result"}] in datalayer(page), str(datalayer(page)))
         ctx.close()
 
         ctx, page = open_challenge(f"?d={TODAY}&t=134", dict(attempts=1, hintsUsed=0, elapsedSeconds=50, **SOLVED), init=stub)
@@ -627,17 +558,6 @@ try:
             page.goto(BASE)
             check("M-off past puzzles switched off: no button", not page.is_visible("#archive-open-button"))
             ctx.close()
-
-        # ---- N. one-time note about the record ----
-        ctx, page, calls = make_context(browser, {"start": [snapshot()]})
-        page.goto(BASE)
-        note = page.inner_text("#record-notice") if page.is_visible("#record-notice") else ""
-        check("N1 note shown on first visit with both messages", "starts counting from today" in note and "saved in this browser only" in note and "history will be lost" in note, repr(note))
-        page.click("#record-notice-close")
-        check("N2 note closes", not page.is_visible("#record-notice"))
-        page.reload()
-        check("N3 note stays closed after a reload", not page.is_visible("#record-notice"))
-        ctx.close()
 
         browser.close()
 finally:

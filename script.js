@@ -288,7 +288,6 @@ function renderCompletion(data) {
   }
 
   recordResult(data);
-  renderRecord();
 
   renderShare(data);
   renderChallengeResult(data);
@@ -409,15 +408,9 @@ function todayInIndia() {
   }
 }
 
+// Nothing to choose: a solved puzzle shares the whole result, a failed one shares the puzzle.
 function getShareChoice() {
-  const selected = document.querySelector('input[name="share-content"]:checked');
-  const value = selected ? selected.value : "";
-
-  if (shareResult && !shareResult.solved) {
-    return value === "record" ? "record" : "puzzle";
-  }
-
-  return value === "record" ? "record" : "result";
+  return shareResult && !shareResult.solved ? "puzzle" : "result";
 }
 
 // Puzzle 1 was 14 Oct 2026 and the numbers follow the calendar.
@@ -459,11 +452,6 @@ function resultPhrase(result, choice) {
 }
 
 function buildShareText(result, choice) {
-  if (choice === "record") {
-    const totals = recordTotals();
-    return `🧠 🧩 Brain Arcade\n\nI've solved ${totals.solved} of ${totals.total} puzzles so far. Can you beat that?`;
-  }
-
   if (choice === "puzzle") {
     return `${shareHeader(result.puzzleDate)}\n\nI couldn't crack this one. Can you?`;
   }
@@ -516,54 +504,6 @@ function daysBetween(fromIso, toIso) {
   const [fy, fm, fd] = fromIso.split("-").map(Number);
   const [ty, tm, td] = toIso.split("-").map(Number);
   return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86400000);
-}
-
-function recordTotals() {
-  const today = todayInIndia();
-  if (!today || today < PUZZLE_ONE_DATE) return { total: 0, played: 0, solved: 0 };
-
-  const puzzles = readRecord();
-  let played = 0;
-  let solved = 0;
-
-  Object.keys(puzzles).forEach((date) => {
-    if (!DATE_PATTERN.test(date) || date < PUZZLE_ONE_DATE || date > today) return;
-    played += 1;
-    if (puzzles[date] && puzzles[date].s) solved += 1;
-  });
-
-  return { total: daysBetween(PUZZLE_ONE_DATE, today) + 1, played, solved };
-}
-
-function recordSentence(totals) {
-  return `You've played ${totals.played} and solved ${totals.solved}.`;
-}
-
-function renderRecord() {
-  const totals = recordTotals();
-  const show = totals.played > 0;
-
-  // The record shows after finishing a puzzle, not on the front page.
-  ["record-completion"].forEach((id) => {
-    const element = $(id);
-    element.hidden = !show;
-    element.textContent = "";
-    element.removeAttribute("aria-label");
-    if (!show) return;
-
-    // Three small tiles; the sentence is the accessible name.
-    element.setAttribute("role", "group");
-    element.setAttribute("aria-label", recordSentence(totals));
-    [["Played", totals.played], ["Solved", totals.solved]].forEach(([label, value]) => {
-      const tile = document.createElement("span");
-      tile.className = "record-tile";
-      tile.setAttribute("aria-hidden", "true");
-      const number = document.createElement("strong");
-      number.textContent = String(value);
-      tile.append(number, label);
-      element.append(tile);
-    });
-  });
 }
 
 // ---- Receiving a challenge ----
@@ -690,23 +630,6 @@ function setShareStatus(message, isError = false) {
   $("share-status").className = isError ? "share-status error" : "share-status";
 }
 
-// Show only the options that make sense, and round the ends of the visible group.
-function layoutShareChoices(solved) {
-  const visible = solved ? ["result", "record"] : ["puzzle", "record"];
-  const labels = Array.from(document.querySelectorAll("#share-choice .choice"));
-
-  labels.forEach((label) => {
-    label.hidden = !visible.includes(label.querySelector("input").value);
-    label.classList.remove("choice-first", "choice-last");
-  });
-
-  const shown = labels.filter((label) => !label.hidden);
-  if (shown.length) {
-    shown[0].classList.add("choice-first");
-    shown[shown.length - 1].classList.add("choice-last");
-  }
-}
-
 function renderShare(data) {
   const panel = $("share-panel");
 
@@ -718,13 +641,6 @@ function renderShare(data) {
     hintsUsed: Math.max(0, Number(data.hintsUsed) || 0),
     elapsedSeconds: Number.isFinite(data.elapsedSeconds) ? data.elapsedSeconds : 0
   };
-
-  layoutShareChoices(shareResult.solved);
-
-  const defaultChoice = shareResult.solved ? "result" : "puzzle";
-
-  const radio = document.querySelector(`input[name="share-content"][value="${defaultChoice}"]`);
-  if (radio) radio.checked = true;
 
   $("share-heading").textContent = shareResult.solved ? "Challenge a friend" : "Challenge a friend to try it";
 
@@ -836,15 +752,6 @@ async function challengeBack() {
   } else {
     await copyResult();
   }
-}
-
-function saveShareChoice() {
-  updateSharePreview();
-
-  trackAnalytics("share_choice_changed", {
-    game_name: "Brain Arcade",
-    content: getShareChoice()
-  });
 }
 
 async function startGame() {
@@ -1025,7 +932,6 @@ function showWelcome() {
   archiveDate = "";
   showOnly(welcomeScreen);
   $("start-button").textContent = startButtonLabel();
-  renderRecord();
 }
 
 function monthOf(isoDate) {
@@ -1229,37 +1135,12 @@ $("start-button").addEventListener("click", startGame);
 $("answer-form").addEventListener("submit", submitAnswer);
 $("hint-button").addEventListener("click", requestHint);
 
-document.querySelectorAll('input[name="share-content"]').forEach((radio) => {
-  radio.addEventListener("change", saveShareChoice);
-});
 $("share-button").addEventListener("click", shareResultNatively);
 $("copy-button").addEventListener("click", copyResult);
 $("whatsapp-button").addEventListener("click", trackWhatsAppShare);
 $("rematch-button").addEventListener("click", challengeBack);
 
-// A one-time note about how the record works.
-const NOTICE_KEY = "brainArcadeRecordNoticeSeen";
-
-function noticeSeen() {
-  try {
-    return localStorage.getItem(NOTICE_KEY) === "1";
-  } catch (error) {
-    return false;
-  }
-}
-
-$("record-notice").hidden = noticeSeen();
 $("archive-open-button").hidden = !ARCHIVE_ENABLED;
-$("notice-archive").hidden = !ARCHIVE_ENABLED;
-$("record-notice-close").addEventListener("click", () => {
-  $("record-notice").hidden = true;
-  try {
-    localStorage.setItem(NOTICE_KEY, "1");
-  } catch (error) {
-    // The note simply shows again next time.
-  }
-});
 
 renderChallengeBanner();
-renderRecord();
 $("start-button").textContent = startButtonLabel();
