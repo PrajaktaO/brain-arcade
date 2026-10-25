@@ -610,3 +610,161 @@ footer {
     padding: 16px;
   }
 }
+
+/* ---- Past puzzles (archive) ---- */
+.archive-open {
+  display: flex;
+  width: 100%;
+  max-width: 320px;
+  margin: 12px auto 0;
+}
+
+.archive {
+  text-align: center;
+}
+
+.archive-note {
+  max-width: 420px;
+  margin: 0 auto 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 360px;
+  margin: 0 auto 10px;
+}
+
+.calendar-step {
+  width: 48px;
+  padding: 0;
+  font-size: 22px;
+}
+
+.calendar-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.cal-weekday {
+  padding-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 2px 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--accent-dark);
+  font: inherit;
+  line-height: 1.1;
+}
+
+button.cal-day {
+  cursor: pointer;
+  border-color: var(--accent);
+  transition: background 0.2s;
+}
+
+button.cal-day:hover {
+  background: #efedff;
+}
+
+.cal-day small {
+  min-height: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cal-off {
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.cal-solved {
+  background: #e8f6ee;
+  border-color: #2f8a57;
+  color: #1c6b3f;
+}
+
+.cal-played {
+  background: #fbeeee;
+  border-color: #c25b5b;
+  color: #9b3a3a;
+}
+
+.cal-today {
+  background: var(--accent);
+  color: #fff;
+}
+
+button.cal-today:hover {
+  background: var(--accent-dark);
+}
+
+.calendar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin: 14px 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.archive-home {
+  display: flex;
+  width: 100%;
+  max-width: 320px;
+  margin: 14px auto 0;
+}
+
+.archive-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 6px;
+}
+
+.archive-tools .text-button[hidden] {
+  display: none;
+}
+
+.archive-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.archive-nav .secondary-button {
+  flex: 1 1 140px;
+}
+
+#archive-retry-button[hidden],
+.archive-nav[hidden] {
+  display: none;
+}

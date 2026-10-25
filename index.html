@@ -50,7 +50,24 @@
       <p id="challenge-banner" class="challenge-banner" role="status" hidden></p>
       <p id="record-welcome" class="record" hidden></p>
       <button id="start-button" class="primary-button">Start today's puzzle</button>
+      <button id="archive-open-button" class="secondary-button archive-open" type="button">Past puzzles</button>
       <p id="welcome-error" class="error-message" role="alert"></p>
+    </section>
+
+    <section id="archive-screen" class="panel archive" aria-labelledby="archive-heading" hidden>
+      <p class="eyebrow">PAST PUZZLES</p>
+      <h2 id="archive-heading">Catch up on what you missed</h2>
+      <p class="archive-note">Tap a day to play it. Past puzzles count towards your record, but never today's streak or rankings.</p>
+      <div class="calendar-nav">
+        <button id="calendar-prev" class="secondary-button calendar-step" type="button" aria-label="Previous month">‹</button>
+        <strong id="calendar-title" aria-live="polite"></strong>
+        <button id="calendar-next" class="secondary-button calendar-step" type="button" aria-label="Next month">›</button>
+      </div>
+      <div id="calendar-grid" class="calendar-grid" role="group" aria-label="Past puzzles"></div>
+      <p class="calendar-legend"><span>✓ solved</span><span>✗ not solved</span><span>• today</span></p>
+      <p id="archive-error" class="error-message" role="alert"></p>
+      <button id="archive-retry-button" class="text-button" type="button" hidden>Try again</button>
+      <button id="archive-home-button" class="secondary-button archive-home" type="button">Back to today's puzzle</button>
     </section>
 
     <section id="game-screen" class="panel" hidden>
@@ -59,7 +76,7 @@
         <span id="timer" class="timer">00:00</span>
       </div>
 
-      <p class="eyebrow">TODAY'S CHALLENGE</p>
+      <p id="game-eyebrow" class="eyebrow">TODAY'S CHALLENGE</p>
       <h2 id="question">Loading today's puzzle…</h2>
 
       <form id="answer-form">
@@ -84,6 +101,10 @@
       </div>
 
       <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+      <div class="archive-tools">
+        <button id="archive-back-button" class="text-button" type="button" hidden>‹ Back to the calendar</button>
+        <button id="share-puzzle-button" class="text-button" type="button" hidden>Share this puzzle</button>
+      </div>
       <div id="hint-box" class="hint-box" hidden>
         <strong>Hint</strong>
         <p id="hint-text"></p>
@@ -129,14 +150,18 @@
         <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
       </section>
       <div class="solution">
-        <p class="eyebrow">TODAY'S PUZZLE</p>
+        <p id="solution-eyebrow" class="eyebrow">TODAY'S PUZZLE</p>
         <p id="completed-question" class="solution-question"></p>
         <p class="answer-label">Answer</p>
         <p id="completed-answer" class="solution-answer"></p>
         <p class="answer-label">Explanation</p>
         <p id="completed-explanation"></p>
       </div>
-      <p class="closing-note">Thanks for playing Brain Arcade. See you for the next daily challenge!</p>
+      <div id="archive-nav" class="archive-nav" hidden>
+        <button id="archive-nav-calendar" class="secondary-button" type="button">Play past puzzles</button>
+        <button id="archive-nav-today" class="secondary-button" type="button" hidden>Today's puzzle</button>
+      </div>
+      <p id="closing-note" class="closing-note">Thanks for playing Brain Arcade. See you for the next daily challenge!</p>
     </section>
 
     <footer>

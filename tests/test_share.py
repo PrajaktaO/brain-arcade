@@ -55,12 +55,15 @@ def make_context(browser, steps, init_script=None, storage=None, viewport=None):
             return
         body = json.loads(req.post_data or "{}")
         action = body.get("action")
-        calls.append(body)
-        data = queue[action].pop(0) if queue.get(action) else {"error": "unexpected call"}
-        status = 200 if "error" not in data else 500
+        is_archive = req.url.endswith("/archive-api")
+        key = ("archive_" + action) if is_archive else action
+        calls.append(dict(body, _fn="archive" if is_archive else "daily"))
+        data = dict(queue[key].pop(0)) if queue.get(key) else {"error": "unexpected call"}
+        status = data.pop("_status", 200 if "error" not in data else 500)
         route.fulfill(status=status, content_type="application/json", headers={"access-control-allow-origin": "*"}, body=json.dumps(data))
 
     page.route("**/functions/v1/swift-task", handle)
+    page.route("**/functions/v1/archive-api", handle)
     page.route("**/www.googletagmanager.com/**", lambda r: r.abort())
     page.on("pageerror", lambda e: check("no page errors", False, str(e)))
     return ctx, page, calls
@@ -503,6 +506,118 @@ try:
         metas = page.evaluate("Object.fromEntries(Array.from(document.querySelectorAll('meta[property^=og], meta[name^=twitter]')).map(m => [m.getAttribute('property') || m.name, m.content]))")
         check("K6 link preview tags present", metas.get("og:image", "").endswith("/og-image.png") and metas.get("og:title") and metas.get("twitter:card") == "summary_large_image", str(metas))
         check("K6b og-image file exists", os.path.exists(os.path.join(os.path.dirname(__file__), "..", "og-image.png")))
+        ctx.close()
+
+        # ---- M. past puzzles (archive) ----
+        from datetime import timedelta
+        start_day = datetime(2026, 10, 14)
+        today_dt = datetime.strptime(TODAY, "%Y-%m-%d")
+        past = [start_day + timedelta(days=i) for i in range((today_dt - start_day).days)]
+        listing = {"startDate": "2026-10-14", "today": TODAY, "puzzles": [{"date": d.strftime("%Y-%m-%d"), "number": (d - start_day).days + 1} for d in past]}
+
+        def archive_snapshot(**kw):
+            kw.setdefault("revealedHints", [])
+            return snapshot(puzzleNumber=6, **kw)
+
+        def events_of(page):
+            return [(e[1], e[2]) for e in datalayer(page) if e[0] == "event"]
+
+        ctx, page, calls = make_context(browser, {
+            "archive_list": [listing, listing, listing],
+            "archive_start": [archive_snapshot(attempts=1, hintsUsed=1, revealedHints=["It has black and white parts"]), archive_snapshot(attempts=1, hintsUsed=1, revealedHints=["It has black and white parts"])],
+            "archive_guess": [archive_snapshot(attempts=2, hintsUsed=1, elapsedSeconds=134, **SOLVED)],
+        }, init_script=stub)
+        page.goto(BASE)
+        check("M0 calendar is not shown at first", not page.is_visible("#archive-screen") and page.is_visible("#archive-open-button"))
+        page.evaluate("window.dataLayer = []")
+        page.click("#archive-open-button")
+        page.wait_for_selector("#calendar-grid button")
+        check("M1 calendar shows October 2026 with a record of the visit", page.inner_text("#calendar-title") == "October 2026" and ("archive_opened", {"game_name": "Brain Arcade"}) in events_of(page))
+        check("M1b first month: previous disabled", page.is_disabled("#calendar-prev"))
+        playable = page.eval_on_selector_all("button.cal-day", "els => els.map(e => e.dataset.date)")
+        check("M2 playable days are 14 Oct up to today", playable[0] == "2026-10-14" and playable[-1] == TODAY and len(playable) == len(past) + 1, str(playable))
+        off = page.locator(".cal-off").count()
+        check("M2b days before puzzle 1 are not playable", off >= 13, str(off))
+        check("M2c today is highlighted", "cal-today" in page.get_attribute(f'button[data-date="{TODAY}"]', "class"))
+        page.click('button[data-date="2026-10-19"]')
+        page.wait_for_selector("#game-screen:not([hidden])")
+        check("M3 past puzzle opens with its number", page.inner_text("#game-eyebrow") == "PUZZLE #6", page.inner_text("#game-eyebrow"))
+        check("M3b start call goes to the archive with the date", calls[-1]["_fn"] == "archive" and calls[-1]["date"] == "2026-10-19" and calls[-1]["action"] == "start", str(calls[-1]))
+        check("M3c earlier hints come back", "black and white" in page.inner_text("#hint-text"), page.inner_text("#hint-text"))
+        check("M3d back link and share link shown", page.is_visible("#archive-back-button") and page.is_visible("#share-puzzle-button"))
+        page.click("#archive-back-button")
+        page.wait_for_selector("#calendar-grid button")
+        page.click('button[data-date="2026-10-19"]')
+        page.wait_for_selector("#game-screen:not([hidden])")
+        page.fill("#answer-input", "piano")
+        page.click("#submit-button")
+        page.wait_for_selector("#completion-screen:not([hidden])")
+        check("M4 guess call carries the date", calls[-1]["_fn"] == "archive" and calls[-1]["date"] == "2026-10-19" and calls[-1]["answer"] == "piano", str(calls[-1]))
+        check("M4b completion words for a past puzzle", "puzzle #6" in page.inner_text("#completion-message") and page.inner_text("#solution-eyebrow") == "THIS PUZZLE")
+        check("M4c navigation buttons", page.is_visible("#archive-nav-calendar") and page.is_visible("#archive-nav-today"))
+        names = [n for n, _ in events_of(page)]
+        check("M4d archive events only, daily numbers untouched", "archive_started" in names and "archive_completed" in names and not ({"puzzle_started", "puzzle_completed", "answer_submitted", "hint_used", "puzzle_resumed"} & set(names)), str(names))
+        check("M4e share text for a past puzzle result", "#6" in page.inner_text("#share-preview") and "d=2026-10-19" in page.inner_text("#share-preview"))
+        rec = page.evaluate("JSON.parse(localStorage.getItem('brainArcadeRecord'))")
+        check("M4f record updated for that day", rec["puzzles"].get("2026-10-19", {}).get("s") == 1, str(rec))
+        page.click("#archive-nav-calendar")
+        page.wait_for_selector("#calendar-grid button")
+        check("M5 solved day is marked", "cal-solved" in page.get_attribute('button[data-date="2026-10-19"]', "class") and "solved" in page.get_attribute('button[data-date="2026-10-19"]', "aria-label"))
+        page.click("#archive-home-button")
+        check("M5b back to today's puzzle", page.is_visible("#welcome-screen") and not page.is_visible("#archive-screen"))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"archive_list": [listing], "archive_start": [archive_snapshot()]})
+        page.goto(BASE)
+        page.click("#archive-open-button")
+        page.wait_for_selector("#calendar-grid button")
+        page.click('button[data-date="2026-10-19"]')
+        page.wait_for_selector("#game-screen:not([hidden])")
+        page.click("#share-puzzle-button")
+        page.wait_for_function("document.getElementById('share-puzzle-button').textContent.includes('copied')")
+        copied = page.evaluate("navigator.clipboard.readText()")
+        check("M6 share a puzzle without playing", copied == "🧠 🧩 Brain Arcade #6\n\nCan you solve this one?\n\n" + BASE + "?d=2026-10-19", repr(copied))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"archive_list": [listing], "archive_start": [{"error": "Use the daily game", "code": "use_daily", "_status": 409}]})
+        page.goto(BASE)
+        page.click("#archive-open-button")
+        page.wait_for_selector("#calendar-grid button")
+        page.click(f'button[data-date="{(today_dt - timedelta(days=1)).strftime("%Y-%m-%d")}"]')
+        page.wait_for_selector("#welcome-screen:not([hidden])")
+        check("M7 a day that became today goes to the daily game", page.is_visible("#start-button"))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"archive_list": [{"error": "boom"}, listing]})
+        page.goto(BASE)
+        page.click("#archive-open-button")
+        page.wait_for_selector("#archive-retry-button:not([hidden])")
+        check("M8 friendly error when the list fails", "Couldn't load" in page.inner_text("#archive-error"))
+        page.click("#archive-retry-button")
+        page.wait_for_selector("#calendar-grid button")
+        check("M8b retry works", page.is_hidden("#archive-retry-button") and page.inner_text("#archive-error") == "")
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"archive_start": [archive_snapshot()], "archive_guess": [archive_snapshot(attempts=1, elapsedSeconds=60, **SOLVED)]}, init_script=stub)
+        page.goto(BASE + "?d=2026-10-19&a=2&h=1&t=134")
+        check("M9 challenge to a past puzzle offers to play it", page.inner_text("#start-button") == "Play puzzle #6" and "direct comparison" not in page.inner_text("#challenge-banner"), page.inner_text("#start-button"))
+        page.click("#start-button")
+        page.wait_for_selector("#game-screen:not([hidden])")
+        check("M9b it opens that archive puzzle", calls[-1]["_fn"] == "archive" and calls[-1]["date"] == "2026-10-19", str(calls[-1]))
+        page.fill("#answer-input", "piano")
+        page.click("#submit-button")
+        page.wait_for_selector("#completion-screen:not([hidden])")
+        check("M9c friend's result is compared", "beat" in page.inner_text("#challenge-result"), page.inner_text("#challenge-result"))
+        ctx.close()
+
+        ctx, page, calls = make_context(browser, {"archive_list": [listing]}, viewport={"width": 320, "height": 640})
+        page.goto(BASE)
+        page.click("#archive-open-button")
+        page.wait_for_selector("#calendar-grid button")
+        overflow = page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        sizes = page.eval_on_selector_all("button.cal-day", "els => els.map(e => [e.getBoundingClientRect().width, e.getBoundingClientRect().height])")
+        check("M10 calendar fits a 320 px phone, cells at least 31 px wide and 44 px tall", overflow <= 0 and min(w for w, h in sizes) >= 31 and min(h for w, h in sizes) >= 44, f"{overflow} {min(sizes)}")
+        page.screenshot(path=os.path.join(SHOTS, "phone_calendar.png"), full_page=True)
         ctx.close()
 
         browser.close()
