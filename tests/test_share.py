@@ -441,6 +441,11 @@ try:
         path = download.path()
         header = open(path, "rb").read(8)
         check("K2 save image downloads a PNG", download.suggested_filename == "brain-arcade-result.png" and header == b"\x89PNG\r\n\x1a\n", repr(header))
+        copied = page.evaluate("navigator.clipboard.readText()")
+        check("K2c saving also copies the bare link for Instagram", copied == BASE + "?d=2026-10-19&a=2&h=1&t=134", repr(copied))
+        status = page.text_content("#share-status")
+        check("K2d status explains the link sticker", "link copied" in status.lower() and "sticker" in status.lower(), status)
+        check("K2e button label says it copies the link", page.text_content("#save-button").strip() == "Save image + copy link")
         check("K2b saving is recorded", ["event", "share_result", {"game_name": "Brain Arcade", "method": "save_image", "content": "result"}] in datalayer(page), str(datalayer(page)))
         ctx.close()
 

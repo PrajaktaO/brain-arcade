@@ -767,8 +767,17 @@ function renderShareImage() {
   canvas.toBlob((blob) => finish(blob), "image/png");
 }
 
-function saveShareImage() {
+// Instagram and similar apps drop links that travel with a picture,
+// so the bare link is copied to the clipboard, ready for a link sticker or the bio.
+async function copyLinkOnly() {
+  if (!shareResult) return false;
+  return copyToClipboard(getShareLink(shareResult, getShareChoice()));
+}
+
+async function saveShareImage() {
   if (!shareImage) return;
+
+  const linkCopied = await copyLinkOnly();
 
   const link = document.createElement("a");
   link.href = shareImage.url;
@@ -777,7 +786,9 @@ function saveShareImage() {
   link.click();
   link.remove();
 
-  setShareStatus("Image saved. Share it from your photos, or post it as a WhatsApp status.");
+  setShareStatus(linkCopied
+    ? "Image saved and link copied. On Instagram, add the link with a Link sticker on your story. On WhatsApp, paste it under your status."
+    : "Image saved. Use the Copy button to get the link.");
   trackAnalytics("share_result", {
     game_name: "Brain Arcade",
     method: "save_image",
@@ -807,7 +818,7 @@ function renderShare(data) {
   const canShare = typeof navigator.share === "function";
   $("share-button").hidden = !canShare;
   $("copy-button").className = canShare ? "secondary-button" : "primary-button";
-  $("copy-button").textContent = canShare ? "Copy" : "Copy to share";
+  $("copy-button").textContent = canShare ? "Copy text" : "Copy to share";
 
   updateSharePreview();
   panel.hidden = false;
@@ -868,6 +879,9 @@ async function shareResultNatively() {
     text: buildFullShare(shareResult, choice)
   };
 
+  // Instagram ignores the text that travels with a picture, so copy the link as well.
+  const linkCopied = await copyLinkOnly();
+
   // Send the picture where the phone supports it; the text and link travel with it.
   try {
     if (shareImage && typeof File === "function" && typeof navigator.canShare === "function") {
@@ -887,6 +901,10 @@ async function shareResultNatively() {
       content: choice,
       format: payload.files ? "image" : "text"
     });
+
+    if (payload.files && linkCopied) {
+      setShareStatus("Link copied too. If an app (like Instagram) drops it, paste it as a link sticker or in the caption.");
+    }
   } catch (error) {
     // Closing the share sheet is not an error.
     if (error && error.name === "AbortError") {
