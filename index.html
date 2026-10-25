@@ -5,6 +5,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Brain Arcade — Daily Puzzle</title>
+  <meta name="description" content="One puzzle a day. Three attempts. How fast can you solve it?">
+  <meta name="theme-color" content="#f4f3fb">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Brain Arcade">
+  <meta property="og:title" content="Brain Arcade: a daily puzzle for your brain">
+  <meta property="og:description" content="One puzzle a day. Three attempts. Can you beat your friends?">
+  <meta property="og:url" content="https://prajaktao.github.io/brain-arcade/">
+  <meta property="og:image" content="https://prajaktao.github.io/brain-arcade/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Brain Arcade: a daily puzzle for your brain">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Brain Arcade: a daily puzzle for your brain">
+  <meta name="twitter:description" content="One puzzle a day. Three attempts. Can you beat your friends?">
+  <meta name="twitter:image" content="https://prajaktao.github.io/brain-arcade/og-image.png">
   <link rel="stylesheet" href="style.css">
   <script src="script.js" defer></script>
   
@@ -33,8 +48,26 @@
       <h2>Ready to challenge yourself?</h2>
       <p>One puzzle. Three attempts. How quickly can you solve it?</p>
       <p id="challenge-banner" class="challenge-banner" role="status" hidden></p>
+      <p id="record-welcome" class="record" hidden></p>
       <button id="start-button" class="primary-button">Start today's puzzle</button>
+      <button id="archive-open-button" class="secondary-button archive-open" type="button">Past puzzles</button>
       <p id="welcome-error" class="error-message" role="alert"></p>
+    </section>
+
+    <section id="archive-screen" class="panel archive" aria-labelledby="archive-heading" hidden>
+      <p class="eyebrow">PAST PUZZLES</p>
+      <h2 id="archive-heading">Catch up on what you missed</h2>
+      <p class="archive-note">Tap a day to play it. Past puzzles count towards your record, but never today's streak or rankings.</p>
+      <div class="calendar-nav">
+        <button id="calendar-prev" class="secondary-button calendar-step" type="button" aria-label="Previous month">‹</button>
+        <strong id="calendar-title" aria-live="polite"></strong>
+        <button id="calendar-next" class="secondary-button calendar-step" type="button" aria-label="Next month">›</button>
+      </div>
+      <div id="calendar-grid" class="calendar-grid" role="group" aria-label="Past puzzles"></div>
+      <p class="calendar-legend"><span>✓ solved</span><span>✗ not solved</span><span>• today</span></p>
+      <p id="archive-error" class="error-message" role="alert"></p>
+      <button id="archive-retry-button" class="text-button" type="button" hidden>Try again</button>
+      <button id="archive-home-button" class="secondary-button archive-home" type="button">Back to today's puzzle</button>
     </section>
 
     <section id="game-screen" class="panel" hidden>
@@ -43,7 +76,7 @@
         <span id="timer" class="timer">00:00</span>
       </div>
 
-      <p class="eyebrow">TODAY'S CHALLENGE</p>
+      <p id="game-eyebrow" class="eyebrow">TODAY'S CHALLENGE</p>
       <h2 id="question">Loading today's puzzle…</h2>
 
       <form id="answer-form">
@@ -68,6 +101,10 @@
       </div>
 
       <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+      <div class="archive-tools">
+        <button id="archive-back-button" class="text-button" type="button" hidden>‹ Back to the calendar</button>
+        <button id="share-puzzle-button" class="text-button" type="button" hidden>Share this puzzle</button>
+      </div>
       <div id="hint-box" class="hint-box" hidden>
         <strong>Hint</strong>
         <p id="hint-text"></p>
@@ -83,37 +120,48 @@
         <span>Completion time</span>
         <strong id="completion-time">00:00</strong>
       </div>
+      <p id="record-completion" class="record record-line" hidden></p>
       <p id="challenge-result" class="challenge-result" role="status" hidden></p>
+      <button id="rematch-button" class="secondary-button rematch" type="button" hidden>Challenge them back</button>
       <section id="share-panel" class="share-panel" aria-labelledby="share-heading" hidden>
         <h3 id="share-heading">Challenge a friend</h3>
         <fieldset id="share-choice" class="share-choice">
           <legend>What would you like to share?</legend>
           <label class="choice">
-            <input type="radio" name="share-content" value="attempts" checked>
-            <span>Attempts &amp; hints</span>
+            <input type="radio" name="share-content" value="result" checked>
+            <span>My result</span>
+          </label>
+          <label class="choice" hidden>
+            <input type="radio" name="share-content" value="puzzle">
+            <span>Puzzle only</span>
           </label>
           <label class="choice">
-            <input type="radio" name="share-content" value="time">
-            <span>Time</span>
+            <input type="radio" name="share-content" value="record">
+            <span>My record</span>
           </label>
         </fieldset>
         <p id="share-preview" class="share-preview"></p>
         <p id="share-note" class="share-note">The link carries your result, so your friend can try to beat it.</p>
         <div class="share-actions">
           <button id="share-button" class="primary-button" type="button" hidden>Share</button>
-          <button id="copy-button" class="secondary-button" type="button">Copy result</button>
+          <a id="whatsapp-button" class="secondary-button" href="https://wa.me/" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          <button id="copy-button" class="secondary-button" type="button">Copy</button>
         </div>
         <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
       </section>
       <div class="solution">
-        <p class="eyebrow">TODAY'S PUZZLE</p>
+        <p id="solution-eyebrow" class="eyebrow">TODAY'S PUZZLE</p>
         <p id="completed-question" class="solution-question"></p>
         <p class="answer-label">Answer</p>
         <p id="completed-answer" class="solution-answer"></p>
         <p class="answer-label">Explanation</p>
         <p id="completed-explanation"></p>
       </div>
-      <p class="closing-note">Thanks for playing Brain Arcade. See you for the next daily challenge!</p>
+      <div id="archive-nav" class="archive-nav" hidden>
+        <button id="archive-nav-calendar" class="secondary-button" type="button">Play past puzzles</button>
+        <button id="archive-nav-today" class="secondary-button" type="button" hidden>Today's puzzle</button>
+      </div>
+      <p id="closing-note" class="closing-note">Thanks for playing Brain Arcade. See you for the next daily challenge!</p>
     </section>
 
     <footer>
