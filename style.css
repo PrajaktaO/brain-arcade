@@ -790,3 +790,18 @@ button.cal-today:hover {
 .notice[hidden] {
   display: none;
 }
+
+/* ---- Shareable picture ---- */
+.share-image {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  margin: 14px auto;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(60, 50, 140, 0.18);
+}
+
+.share-image[hidden] {
+  display: none;
+}

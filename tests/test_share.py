@@ -92,8 +92,8 @@ try:
         play_to_solution(page)
         check("A1 share panel visible after a solve", page.is_visible("#share-panel"))
         check("A2 there is nothing to choose: no share switch", page.locator('input[name="share-content"]').count() == 0 and not page.is_visible("#share-choice"))
-        preview = page.inner_text("#share-preview")
-        full = "🧠 🧩 Brain Arcade #6\n\nI solved it in 2 tries with 1 hint, taking 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1&t=134"
+        preview = page.text_content("#share-preview")
+        full = "🧠 🧩 Brain Arcade\n\nI solved it in 2 tries with 1 hint, taking 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1&t=134"
         check("A3 result preview has tries, hints and time", preview == full, repr(preview))
         check("A4 attempts and time are no longer separate choices", page.locator('input[value="time"], input[value="attempts"]').count() == 0)
         check("A6 native share button hidden when unsupported", not page.is_visible("#share-button"))
@@ -115,8 +115,8 @@ try:
         play_to_solution(page)
         check("B1 share panel shown when unsolved", page.is_visible("#share-panel"))
         check("B2 no choice offered when unsolved", page.locator('input[name="share-content"]').count() == 0)
-        preview = page.inner_text("#share-preview")
-        check("B3 puzzle-only preview", preview == "🧠 🧩 Brain Arcade #6\n\nI couldn't crack this one. Can you?\n\n" + BASE + "?d=2026-10-19", repr(preview))
+        preview = page.text_content("#share-preview")
+        check("B3 puzzle-only preview", preview == "🧠 🧩 Brain Arcade\n\nI couldn't crack this one. Can you?\n\n" + BASE + "?d=2026-10-19", repr(preview))
         check("B4 note says no result shared", "No result is shared" in page.inner_text("#share-note"))
         page.click("#copy-button")
         page.wait_for_function("document.getElementById('share-status').textContent.length > 0")
@@ -132,7 +132,7 @@ try:
         page.click("#start-button")
         page.wait_for_selector("#completion-screen:not([hidden])")
         check("C1 panel visible after reload of a solved puzzle", page.is_visible("#share-panel"))
-        check("C3 result preview after reload", "01:01" in page.inner_text("#share-preview") and "1 try with no hints" in page.inner_text("#share-preview"))
+        check("C3 result preview after reload", "01:01" in page.text_content("#share-preview") and "1 try with no hints" in page.text_content("#share-preview"))
         ctx.close()
 
         # ---- D. singular and plural wording ----
@@ -142,7 +142,7 @@ try:
                 "guess": [snapshot(attempts=attempts, hintsUsed=hints, elapsedSeconds=90, **SOLVED)],
             })
             play_to_solution(page)
-            check(f"D wording {expected}", expected in page.inner_text("#share-preview"), page.inner_text("#share-preview"))
+            check(f"D wording {expected}", expected in page.text_content("#share-preview"), page.text_content("#share-preview"))
             ctx.close()
 
         # ---- E. native share ----
@@ -160,7 +160,7 @@ try:
         page.click("#share-button")
         page.wait_for_function("window.__shared.length === 1")
         shared = page.evaluate("window.__shared[0]")
-        check("E3 native share payload", shared == {"title": "Brain Arcade", "text": "🧠 🧩 Brain Arcade #6\n\nI solved it in 2 tries with 1 hint, taking 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1&t=134"}, repr(shared))
+        check("E3 native share payload", shared == {"title": "Brain Arcade", "text": "🧠 🧩 Brain Arcade\n\nI solved it in 2 tries with 1 hint, taking 02:14. Can you beat that?\n\n" + BASE + "?d=2026-10-19&a=2&h=1&t=134"}, repr(shared))
         # user cancels the share sheet: no error, no copy
         page.evaluate("(() => { window.__shareBehaviour = () => Promise.reject(Object.assign(new Error('cancel'), {name: 'AbortError'})); })()")
         page.click("#share-button")
@@ -200,7 +200,7 @@ try:
         check("G1 no horizontal scroll at 320 px", overflow <= 0, f"overflow {overflow}px")
         box = page.eval_on_selector("#share-panel", "e => { const r = e.getBoundingClientRect(); return [r.left, r.right]; }")
         check("G2 share panel inside the 320 px screen", box[0] >= 0 and box[1] <= 320, str(box))
-        sizes = page.eval_on_selector_all("#share-button, #copy-button, #whatsapp-button", "els => els.map(e => e.getBoundingClientRect().height)")
+        sizes = page.eval_on_selector_all("#share-button, #save-button, #copy-button", "els => els.map(e => e.getBoundingClientRect().height)")
         check("G3 touch targets at least 44 px", all(s >= 44 for s in sizes), str(sizes))
         page.screenshot(path=os.path.join(SHOTS, "phone_completion.png"), full_page=True)
         ctx.close()
@@ -226,7 +226,7 @@ try:
 
         ctx, page = open_challenge(f"?d={TODAY}&t=134")
         banner = page.inner_text("#challenge-banner") if page.is_visible("#challenge-banner") else ""
-        pn = "puzzle #" + str((datetime.strptime(TODAY, "%Y-%m-%d") - datetime(2026, 10, 14)).days + 1)
+        pn = "today's puzzle"
         day = int(TODAY[8:]); mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][int(TODAY[5:7]) - 1]
         check("H1 time challenge banner", banner == f"Your friend solved {pn} in 02:14. Can you beat that?", repr(banner))
         check("H1b opening a challenge is recorded", ["event", "challenge_opened", {"game_name": "Brain Arcade", "challenge_type": "time"}] in datalayer(page))
@@ -259,7 +259,7 @@ try:
                "?d=" + TODAY + "&a=9&h=1", "?d=" + TODAY + "&t=0", "?d=" + TODAY + "&a=2", "?d=" + TODAY + "&t=99999999", "?d=" + TODAY + "&t=-5", "?d=" + TODAY + "&x=1", "?d=" + TODAY + "&h=1"]
         for q in bad:
             ctx, page = open_challenge(q)
-            check(f"H3 invalid link ignored {q[:34]}", not page.is_visible("#challenge-banner") and page.query_selector("img") is None)
+            check(f"H3 invalid link ignored {q[:34]}", not page.is_visible("#challenge-banner") and page.query_selector("img:not(#share-image)") is None)
             ctx.close()
 
         win = dict(attempts=2, hintsUsed=1, elapsedSeconds=134, **SOLVED)
@@ -409,18 +409,39 @@ try:
             check(f"L2 combined challenge {want} ({final['attempts']} tries, {final['elapsedSeconds']}s)", msg in got, got)
             ctx.close()
 
-        # ---- K. WhatsApp, record sharing, rematch, link preview ----
+        # ---- K. picture, saving, rematch, link preview ----
+        stub_files = """
+        window.__shared = [];
+        navigator.canShare = (d) => !!(d && d.files && d.files.length);
+        navigator.share = (d) => { window.__shared.push({title: d.title, text: d.text, files: (d.files || []).map(f => ({name: f.name, type: f.type, size: f.size}))}); return Promise.resolve(); };
+        """
+        ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, hintsUsed=1, elapsedSeconds=134, **SOLVED)]}, init_script=stub_files)
+        play_to_solution(page)
+        page.wait_for_function("!document.getElementById('save-button').hidden")
+        page.evaluate("window.dataLayer = []")
+        page.click("#share-button")
+        page.wait_for_function("window.__shared.length === 1")
+        sent = page.evaluate("window.__shared[0]")
+        check("K0 phones get the picture plus text and link", len(sent["files"]) == 1 and sent["files"][0]["type"] == "image/png" and sent["files"][0]["size"] > 5000 and "?d=2026-10-19&a=2&h=1&t=134" in sent["text"], str(sent)[:300])
+        check("K0b native image share is recorded", ["event", "share_result", {"game_name": "Brain Arcade", "method": "native", "content": "result", "format": "image"}] in datalayer(page), str(datalayer(page)))
+        ctx.close()
+
         ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, hintsUsed=1, elapsedSeconds=134, **SOLVED)]}, init_script=stub)
         play_to_solution(page)
-        href = page.get_attribute("#whatsapp-button", "href")
-        from urllib.parse import urlparse, parse_qs
-        wa = parse_qs(urlparse(href).query).get("text", [""])[0]
-        check("K1 WhatsApp link carries the full share text", href.startswith("https://wa.me/?text=") and wa == page.inner_text("#share-preview"), href)
-        check("K1b WhatsApp opens in a new tab safely", page.get_attribute("#whatsapp-button", "target") == "_blank" and "noopener" in page.get_attribute("#whatsapp-button", "rel"))
+        page.wait_for_function("document.getElementById('share-image') && !document.getElementById('share-image').hidden && document.getElementById('share-image').naturalWidth > 0")
+        size = page.evaluate("[document.getElementById('share-image').naturalWidth, document.getElementById('share-image').naturalHeight]")
+        check("K1 a picture is shown, 1080 x 1350", size == [1080, 1350], str(size))
+        alt = page.get_attribute("#share-image", "alt")
+        check("K1b the picture has a text description without numbers or answers", alt == "🧠 🧩 Brain Arcade I solved it in 2 tries with 1 hint, taking 02:14. Can you beat that?" and "piano" not in alt.lower(), repr(alt))
+        check("K1c no WhatsApp text button, no puzzle number anywhere in the share", page.locator("#whatsapp-button").count() == 0 and "#" not in page.text_content("#share-preview"))
         page.evaluate("window.dataLayer = []")
-        page.evaluate("document.getElementById('whatsapp-button').addEventListener('click', e => e.preventDefault())")
-        page.click("#whatsapp-button")
-        check("K3 WhatsApp share is recorded", ["event", "share_result", {"game_name": "Brain Arcade", "method": "whatsapp", "content": "result"}] in datalayer(page), str(datalayer(page)))
+        with page.expect_download() as dl:
+            page.click("#save-button")
+        download = dl.value
+        path = download.path()
+        header = open(path, "rb").read(8)
+        check("K2 save image downloads a PNG", download.suggested_filename == "brain-arcade-result.png" and header == b"\x89PNG\r\n\x1a\n", repr(header))
+        check("K2b saving is recorded", ["event", "share_result", {"game_name": "Brain Arcade", "method": "save_image", "content": "result"}] in datalayer(page), str(datalayer(page)))
         ctx.close()
 
         ctx, page = open_challenge(f"?d={TODAY}&t=134", dict(attempts=1, hintsUsed=0, elapsedSeconds=50, **SOLVED), init=stub)
@@ -490,7 +511,7 @@ try:
             check("M4c navigation buttons", page.is_visible("#archive-nav-calendar") and page.is_visible("#archive-nav-today"))
             names = [n for n, _ in events_of(page)]
             check("M4d archive events only, daily numbers untouched", "archive_started" in names and "archive_completed" in names and not ({"puzzle_started", "puzzle_completed", "answer_submitted", "hint_used", "puzzle_resumed"} & set(names)), str(names))
-            check("M4e share text for a past puzzle result", "#6" in page.inner_text("#share-preview") and "d=2026-10-19" in page.inner_text("#share-preview"))
+            check("M4e share text for a past puzzle result", "#6" in page.text_content("#share-preview") and "d=2026-10-19" in page.text_content("#share-preview"))
             rec = page.evaluate("JSON.parse(localStorage.getItem('brainArcadeRecord'))")
             check("M4f record updated for that day", rec["puzzles"].get("2026-10-19", {}).get("s") == 1, str(rec))
             page.click("#archive-nav-calendar")
@@ -509,7 +530,7 @@ try:
             page.click("#share-puzzle-button")
             page.wait_for_function("document.getElementById('share-puzzle-button').textContent.includes('copied')")
             copied = page.evaluate("navigator.clipboard.readText()")
-            check("M6 share a puzzle without playing", copied == "🧠 🧩 Brain Arcade #6\n\nCan you solve this one?\n\n" + BASE + "?d=2026-10-19", repr(copied))
+            check("M6 share a puzzle without playing", copied == "🧠 🧩 Brain Arcade\n\nCan you solve this one?\n\n" + BASE + "?d=2026-10-19", repr(copied))
             ctx.close()
 
             ctx, page, calls = make_context(browser, {"archive_list": [listing], "archive_start": [{"error": "Use the daily game", "code": "use_daily", "_status": 409}]})

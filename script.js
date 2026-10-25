@@ -421,17 +421,16 @@ function puzzleNumber(isoDate) {
   return number >= 1 ? number : 0;
 }
 
+// No puzzle numbers: anyone can start on any day and never feels late.
 function puzzleName(isoDate) {
-  const number = puzzleNumber(isoDate);
-  if (number) return `puzzle #${number}`;
+  if (isoDate && isoDate === todayInIndia()) return "today's puzzle";
 
   const date = formatShortDate(isoDate);
   return date ? `the ${date} puzzle` : "today's puzzle";
 }
 
-function shareHeader(isoDate) {
-  const number = puzzleNumber(isoDate);
-  return number ? `🧠 🧩 Brain Arcade #${number}` : "🧠 🧩 Brain Arcade";
+function shareHeader() {
+  return "🧠 🧩 Brain Arcade";
 }
 
 function resultPhrase(result, choice) {
@@ -620,9 +619,170 @@ function updateSharePreview() {
   const full = buildFullShare(shareResult, choice);
 
   $("share-preview").textContent = full;
-  $("whatsapp-button").href = `https://wa.me/?text=${encodeURIComponent(full)}`;
   $("share-note").textContent = SHARE_NOTES[choice] || SHARE_NOTES.result;
   setShareStatus("");
+  renderShareImage();
+}
+
+/*
+  The picture players share: tries, hints and time on a card.
+  It never contains the answer, the explanation or any identifier.
+*/
+const CARD_WIDTH = 1080;
+const CARD_HEIGHT = 1350;
+const CARD_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+let shareImage = null;
+
+function roundedRectPath(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.closePath();
+}
+
+function siteAddress() {
+  try {
+    const url = new URL(getShareLink(null, "record"));
+    return `${url.host}${url.pathname}`.replace(/\/$/, "");
+  } catch (error) {
+    return "Brain Arcade";
+  }
+}
+
+function drawShareCard(result) {
+  const canvas = document.createElement("canvas");
+  canvas.width = CARD_WIDTH;
+  canvas.height = CARD_HEIGHT;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  const solved = Boolean(result.solved);
+  const center = CARD_WIDTH / 2;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+
+  const background = ctx.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT);
+  background.addColorStop(0, "#e6e1ff");
+  background.addColorStop(1, "#f8f6ff");
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+
+  ctx.fillStyle = "rgba(101, 88, 211, 0.10)";
+  [[110, 120, 190], [980, 300, 140], [1000, 1180, 220], [60, 1230, 120]].forEach(([x, y, radius]) => {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.fillStyle = "#20243a";
+  ctx.font = `800 92px ${CARD_FONT}`;
+  ctx.fillText("Brain Arcade", center, 250);
+  ctx.font = `110px ${CARD_FONT}`;
+  ctx.fillText("🧠 🧩", center, 150);
+
+  ctx.save();
+  ctx.shadowColor = "rgba(60, 50, 140, 0.18)";
+  ctx.shadowBlur = 50;
+  ctx.shadowOffsetY = 20;
+  ctx.fillStyle = "#ffffff";
+  roundedRectPath(ctx, 90, 330, 900, 700, 56);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = "#20243a";
+  ctx.font = `120px ${CARD_FONT}`;
+  ctx.fillText(solved ? "🏆" : "🧩", center, 490);
+  ctx.font = `800 84px ${CARD_FONT}`;
+  ctx.fillText(solved ? "Solved it!" : "Tough one!", center, 610);
+
+  const tiles = [
+    ["Tries", String(result.attempts)],
+    ["Hints", String(result.hintsUsed)],
+    ["Time", formatTime(result.elapsedSeconds)]
+  ];
+  const tileWidth = 260;
+  const gap = 22;
+  const startX = 90 + (900 - (tileWidth * 3 + gap * 2)) / 2;
+
+  tiles.forEach(([label, value], index) => {
+    const x = startX + index * (tileWidth + gap);
+    ctx.fillStyle = "#f1efff";
+    roundedRectPath(ctx, x, 665, tileWidth, 190, 32);
+    ctx.fill();
+    ctx.fillStyle = "#5144ba";
+    ctx.font = `800 78px ${CARD_FONT}`;
+    ctx.fillText(value, x + tileWidth / 2, 770);
+    ctx.fillStyle = "#6d7285";
+    ctx.font = `600 34px ${CARD_FONT}`;
+    ctx.fillText(label, x + tileWidth / 2, 825);
+  });
+
+  ctx.fillStyle = "#20243a";
+  ctx.font = `800 62px ${CARD_FONT}`;
+  ctx.fillText(solved ? "Can you beat that?" : "Can you crack it?", center, 955);
+
+  ctx.fillStyle = "#6558d3";
+  roundedRectPath(ctx, 120, 1100, 840, 96, 48);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `700 40px ${CARD_FONT}`;
+  ctx.fillText(siteAddress(), center, 1162);
+
+  ctx.fillStyle = "#6d7285";
+  ctx.font = `500 34px ${CARD_FONT}`;
+  ctx.fillText("One puzzle a day. Three attempts.", center, 1270);
+
+  return canvas;
+}
+
+function renderShareImage() {
+  if (!shareResult) return;
+
+  const target = shareResult;
+  const canvas = drawShareCard(target);
+  const image = $("share-image");
+
+  const finish = (blob) => {
+    if (target !== shareResult) return;
+
+    if (shareImage) URL.revokeObjectURL(shareImage.url);
+    shareImage = blob ? { blob, url: URL.createObjectURL(blob) } : null;
+
+    image.hidden = !shareImage;
+    $("save-button").hidden = !shareImage;
+    if (shareImage) {
+      image.src = shareImage.url;
+      image.alt = buildShareText(target, getShareChoice()).replace(/\s*\n+\s*/g, " ");
+    }
+  };
+
+  if (!canvas || typeof canvas.toBlob !== "function") {
+    finish(null);
+    return;
+  }
+
+  canvas.toBlob((blob) => finish(blob), "image/png");
+}
+
+function saveShareImage() {
+  if (!shareImage) return;
+
+  const link = document.createElement("a");
+  link.href = shareImage.url;
+  link.download = "brain-arcade-result.png";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setShareStatus("Image saved. Share it from your photos, or post it as a WhatsApp status.");
+  trackAnalytics("share_result", {
+    game_name: "Brain Arcade",
+    method: "save_image",
+    content: getShareChoice()
+  });
 }
 
 function setShareStatus(message, isError = false) {
@@ -694,7 +854,7 @@ async function copyResult() {
       content: choice
     });
   } else {
-    setShareStatus("Couldn't copy automatically. Select the text above and copy it.", true);
+    setShareStatus("Couldn't copy automatically. Please try again.", true);
   }
 }
 
@@ -703,16 +863,29 @@ async function shareResultNatively() {
 
   const choice = getShareChoice();
 
+  const payload = {
+    title: "Brain Arcade",
+    text: buildFullShare(shareResult, choice)
+  };
+
+  // Send the picture where the phone supports it; the text and link travel with it.
   try {
-    await navigator.share({
-      title: "Brain Arcade",
-      text: buildFullShare(shareResult, choice)
-    });
+    if (shareImage && typeof File === "function" && typeof navigator.canShare === "function") {
+      const file = new File([shareImage.blob], "brain-arcade-result.png", { type: "image/png" });
+      if (navigator.canShare({ files: [file] })) payload.files = [file];
+    }
+  } catch (error) {
+    delete payload.files;
+  }
+
+  try {
+    await navigator.share(payload);
 
     trackAnalytics("share_result", {
       game_name: "Brain Arcade",
       method: "native",
-      content: choice
+      content: choice,
+      format: payload.files ? "image" : "text"
     });
   } catch (error) {
     // Closing the share sheet is not an error.
@@ -725,14 +898,6 @@ async function shareResultNatively() {
     }
     await copyResult();
   }
-}
-
-function trackWhatsAppShare() {
-  trackAnalytics("share_result", {
-    game_name: "Brain Arcade",
-    method: "whatsapp",
-    content: getShareChoice()
-  });
 }
 
 // One tap from "your friend did better" to a new challenge.
@@ -1137,7 +1302,7 @@ $("hint-button").addEventListener("click", requestHint);
 
 $("share-button").addEventListener("click", shareResultNatively);
 $("copy-button").addEventListener("click", copyResult);
-$("whatsapp-button").addEventListener("click", trackWhatsAppShare);
+$("save-button").addEventListener("click", saveShareImage);
 $("rematch-button").addEventListener("click", challengeBack);
 
 $("archive-open-button").hidden = !ARCHIVE_ENABLED;
