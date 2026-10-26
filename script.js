@@ -814,13 +814,6 @@ function renderShare(data) {
 
   $("share-heading").textContent = shareResult.solved ? "Challenge a friend" : "Challenge a friend to try it";
 
-  const canShare = typeof navigator.share === "function";
-  $("share-button").hidden = !canShare;
-  // Phones use Share; the copy button is only a fallback where sharing isn't supported.
-  $("copy-button").hidden = canShare;
-  $("copy-button").className = "primary-button";
-  $("copy-button").textContent = "Copy to share";
-
   updateSharePreview();
   panel.hidden = false;
 }
@@ -872,6 +865,12 @@ async function copyResult() {
 
 async function shareResultNatively() {
   if (!shareResult) return;
+
+  // Browsers without a share sheet (most desktops) copy the text and link instead.
+  if (typeof navigator.share !== "function") {
+    await copyResult();
+    return;
+  }
 
   const choice = getShareChoice();
 
@@ -1295,7 +1294,7 @@ async function sharePuzzleInvite() {
   }
 }
 
-$("archive-open-button").addEventListener("click", () => openArchive());
+if ($("archive-open-button")) $("archive-open-button").addEventListener("click", () => openArchive());
 $("archive-nav-calendar").addEventListener("click", () => openArchive());
 $("archive-back-button").addEventListener("click", () => openArchive(false));
 $("archive-nav-today").addEventListener("click", showWelcome);
@@ -1320,10 +1319,9 @@ $("answer-form").addEventListener("submit", submitAnswer);
 $("hint-button").addEventListener("click", requestHint);
 
 $("share-button").addEventListener("click", shareResultNatively);
-$("copy-button").addEventListener("click", copyResult);
 $("rematch-button").addEventListener("click", challengeBack);
 
-$("archive-open-button").hidden = !ARCHIVE_ENABLED;
+if ($("archive-open-button")) $("archive-open-button").hidden = !ARCHIVE_ENABLED;
 
 renderChallengeBanner();
 $("start-button").textContent = startButtonLabel();

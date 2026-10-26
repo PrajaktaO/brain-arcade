@@ -805,3 +805,5 @@ button.cal-today:hover {
 .share-image[hidden] {
   display: none;
 }
+
+.archive-open[hidden] { display: none; }
