@@ -315,6 +315,46 @@ h2 {
   line-height: 1.5;
 }
 
+.record {
+  margin: 0 auto 20px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.welcome > p.record {
+  max-width: 420px;
+}
+
+.record {
+  display: flex;
+  gap: 10px;
+  max-width: 360px;
+}
+
+.record-tile {
+  flex: 1 1 0;
+  padding: 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #faf9ff;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.record-tile strong {
+  display: block;
+  color: var(--accent-dark);
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.record-line {
+  margin-top: -8px;
+  margin-bottom: 18px;
+}
+
 .share-panel {
   margin: 0 0 26px;
   padding: 20px;
@@ -356,11 +396,11 @@ h2 {
   justify-content: center;
   min-width: 0;
   min-height: 48px;
-  padding: 0 10px;
+  padding: 0 6px;
   border: 1px solid var(--accent);
   background: var(--paper);
   color: var(--accent-dark);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.25;
   text-align: center;
@@ -368,13 +408,20 @@ h2 {
   transition: background 0.2s, color 0.2s;
 }
 
-.choice:first-of-type {
+.choice + .choice {
+  margin-left: -1px;
+}
+
+.choice-first {
   border-radius: 12px 0 0 12px;
 }
 
-.choice:last-of-type {
-  margin-left: -1px;
+.choice-last {
   border-radius: 0 12px 12px 0;
+}
+
+.choice-first.choice-last {
+  border-radius: 12px;
 }
 
 /* The radio stays in the page for keyboards and screen readers, but is not drawn. */
@@ -428,7 +475,8 @@ h2 {
   gap: 10px;
 }
 
-.share-actions button {
+.share-actions button,
+.share-actions a {
   flex: 1 1 140px;
 }
 
@@ -448,6 +496,16 @@ h2 {
 
 .secondary-button:hover {
   background: #efedff;
+}
+
+.share-actions a.secondary-button {
+  text-decoration: none;
+}
+
+.rematch {
+  display: flex;
+  width: 100%;
+  margin: -6px 0 22px;
 }
 
 .share-status {
@@ -552,3 +610,200 @@ footer {
     padding: 16px;
   }
 }
+
+/* ---- Past puzzles (archive) ---- */
+.archive-open {
+  display: flex;
+  width: 100%;
+  max-width: 320px;
+  margin: 12px auto 0;
+}
+
+.archive {
+  text-align: center;
+}
+
+.archive-note {
+  max-width: 420px;
+  margin: 0 auto 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 360px;
+  margin: 0 auto 10px;
+}
+
+.calendar-step {
+  width: 48px;
+  padding: 0;
+  font-size: 22px;
+}
+
+.calendar-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.cal-weekday {
+  padding-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 2px 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--accent-dark);
+  font: inherit;
+  line-height: 1.1;
+}
+
+button.cal-day {
+  cursor: pointer;
+  border-color: var(--accent);
+  transition: background 0.2s;
+}
+
+button.cal-day:hover {
+  background: #efedff;
+}
+
+.cal-day small {
+  min-height: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cal-off {
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.cal-solved {
+  background: #e8f6ee;
+  border-color: #2f8a57;
+  color: #1c6b3f;
+}
+
+.cal-played {
+  background: #fbeeee;
+  border-color: #c25b5b;
+  color: #9b3a3a;
+}
+
+.cal-today {
+  background: var(--accent);
+  color: #fff;
+}
+
+button.cal-today:hover {
+  background: var(--accent-dark);
+}
+
+.calendar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin: 14px 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.archive-home {
+  display: flex;
+  width: 100%;
+  max-width: 320px;
+  margin: 14px auto 0;
+}
+
+.archive-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 6px;
+}
+
+.archive-tools .text-button[hidden] {
+  display: none;
+}
+
+.archive-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.archive-nav .secondary-button {
+  flex: 1 1 140px;
+}
+
+#archive-retry-button[hidden],
+.archive-nav[hidden] {
+  display: none;
+}
+
+/* ---- One-time note about the record ---- */
+.notice {
+  max-width: 420px;
+  margin: 0 auto 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #faf9ff;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.notice p {
+  margin: 0 0 8px;
+}
+
+.notice[hidden] {
+  display: none;
+}
+
+/* ---- Shareable picture ---- */
+.share-image {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  margin: 14px auto;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(60, 50, 140, 0.18);
+}
+
+.share-image[hidden] {
+  display: none;
+}
+
+.archive-open[hidden] { display: none; }
