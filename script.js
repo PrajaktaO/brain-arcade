@@ -752,7 +752,6 @@ function renderShareImage() {
     shareImage = blob ? { blob, url: URL.createObjectURL(blob) } : null;
 
     image.hidden = !shareImage;
-    $("save-button").hidden = !shareImage;
     if (shareImage) {
       image.src = shareImage.url;
       image.alt = buildShareText(target, getShareChoice()).replace(/\s*\n+\s*/g, " ");
@@ -817,8 +816,10 @@ function renderShare(data) {
 
   const canShare = typeof navigator.share === "function";
   $("share-button").hidden = !canShare;
-  $("copy-button").className = canShare ? "secondary-button" : "primary-button";
-  $("copy-button").textContent = canShare ? "Copy text" : "Copy to share";
+  // Phones use Share; the copy button is only a fallback where sharing isn't supported.
+  $("copy-button").hidden = canShare;
+  $("copy-button").className = "primary-button";
+  $("copy-button").textContent = "Copy to share";
 
   updateSharePreview();
   panel.hidden = false;
@@ -1320,7 +1321,6 @@ $("hint-button").addEventListener("click", requestHint);
 
 $("share-button").addEventListener("click", shareResultNatively);
 $("copy-button").addEventListener("click", copyResult);
-$("save-button").addEventListener("click", saveShareImage);
 $("rematch-button").addEventListener("click", challengeBack);
 
 $("archive-open-button").hidden = !ARCHIVE_ENABLED;
