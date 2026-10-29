@@ -24,7 +24,6 @@ Every event also carries `game_name = "Brain Arcade"`. Events marked **once** ar
 | `share_dismissed` | The phone's share sheet is closed without sharing | `content` | Friction: opened the share sheet but did not share |
 | `challenge_opened` | Someone opens a friend's challenge link | `challenge_type` (`time`, `attempts`, `puzzle`) | Virality: how many shares bring people in |
 | `challenge_completed` **once** | A challenged player finishes the same day's puzzle | `challenge_type`, `outcome` (`beat`, `tied`, `behind`, `unsolved`, `cracked`, `also_unsolved`) | Whether challenges are fun and finished |
-| `challenge_rematch` | A challenged player taps "Challenge them back" | `outcome` (same values as `challenge_completed`) | Whether challenges chain into new challenges |
 | `archive_opened` | The past-puzzles calendar is opened | none | How many people go back to older puzzles |
 | `archive_started` **once per puzzle** | A past puzzle is opened for the first time in a session | `puzzle_date`, `puzzle_number` | Which past puzzles are played |
 | `archive_completed` **once per puzzle** | A past puzzle ends | `puzzle_date`, `solved`, `attempts_used`, `hints_used`, `completion_time_seconds` | Archive finish and solve rate. Past puzzles never send the daily `puzzle_*`, `answer_submitted` or `hint_used` events, so daily numbers stay clean |

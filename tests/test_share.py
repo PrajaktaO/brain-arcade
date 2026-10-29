@@ -269,7 +269,7 @@ try:
             (f"?d={TODAY}&a=1&h=0", win, "behind"), (f"?d={TODAY}&a=2&h=3", win, "beat"),
             (f"?d={TODAY}&a=2&h=1", dict(attempts=3, completed=True, solved=False, correct=False, answer="x", explanation="y"), "unsolved"),
         ]
-        expect_text = {"beat": "You beat your friend", "tied": "You matched your friend", "behind": "Challenge them back", "unsolved": "Try again with tomorrow"}
+        expect_text = {"beat": "You beat your friend", "tied": "You matched your friend", "behind": "a little better", "unsolved": "Try again with tomorrow"}
         for q, final, outcome in cases:
             ctx, page = open_challenge(q, final)
             finish(page)
@@ -438,12 +438,11 @@ try:
         ctx.close()
 
         ctx, page = open_challenge(f"?d={TODAY}&t=134", dict(attempts=1, hintsUsed=0, elapsedSeconds=50, **SOLVED), init=stub)
-        check("K5 rematch button hidden before playing", not page.is_visible("#rematch-button"))
+        check("K5 no rematch button before playing", page.locator("#rematch-button").count() == 0)
         finish(page)
-        check("K5b rematch button shown with the challenge result", page.is_visible("#rematch-button"))
-        page.evaluate("window.dataLayer = []")
-        page.click("#rematch-button")
-        check("K5c rematch is recorded", any(e[:2] == ["event", "challenge_rematch"] for e in datalayer(page)), str(datalayer(page)))
+        check("K5b no rematch button after the challenge result", page.locator("#rematch-button").count() == 0 and "Challenge them back" not in page.inner_text("body"))
+        check("K5c friend's result is still shown", page.is_visible("#challenge-result"))
+        check("K5d the normal Share button is still there", page.is_visible("#share-button"))
         ctx.close()
 
         ctx, page, calls = make_context(browser, {"start": [snapshot()]})
