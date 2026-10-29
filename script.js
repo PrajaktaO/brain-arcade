@@ -579,23 +579,20 @@ function compareWithChallenge(data) {
   return "tied";
 }
 
-let lastChallengeOutcome = "";
 
 function renderChallengeResult(data) {
   const outcome = compareWithChallenge(data);
   const element = $("challenge-result");
-  lastChallengeOutcome = outcome || "";
 
   if (!outcome) {
     element.hidden = true;
-    $("rematch-button").hidden = true;
     return;
   }
 
   const messages = {
     beat: "🎉 You beat your friend's result!",
     tied: "🤝 You matched your friend's result!",
-    behind: "Your friend's result was a little better this time. Challenge them back!",
+    behind: "Your friend's result was a little better this time. Try again with tomorrow's puzzle!",
     unsolved: "Your friend solved this one. Try again with tomorrow's puzzle!",
     cracked: "🎉 You cracked the puzzle your friend couldn't!",
     also_unsolved: "This one was a tough one for both of you. Try again with tomorrow's puzzle!"
@@ -603,7 +600,6 @@ function renderChallengeResult(data) {
 
   element.textContent = messages[outcome];
   element.hidden = false;
-  $("rematch-button").hidden = false;
 
   trackAnalyticsOnce("challenge_completed", {
     game_name: "Brain Arcade",
@@ -914,25 +910,6 @@ async function shareResultNatively() {
       });
       return;
     }
-    await copyResult();
-  }
-}
-
-// One tap from "your friend did better" to a new challenge.
-async function challengeBack() {
-  if (!shareResult) return;
-
-  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  $("share-panel").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
-
-  trackAnalytics("challenge_rematch", {
-    game_name: "Brain Arcade",
-    outcome: lastChallengeOutcome || "none"
-  });
-
-  if (typeof navigator.share === "function") {
-    await shareResultNatively();
-  } else {
     await copyResult();
   }
 }
@@ -1319,7 +1296,6 @@ $("answer-form").addEventListener("submit", submitAnswer);
 $("hint-button").addEventListener("click", requestHint);
 
 $("share-button").addEventListener("click", shareResultNatively);
-$("rematch-button").addEventListener("click", challengeBack);
 
 if ($("archive-open-button")) $("archive-open-button").hidden = !ARCHIVE_ENABLED;
 
