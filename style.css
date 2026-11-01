@@ -825,8 +825,8 @@ button.cal-today:hover {
   padding: 10px 16px;
   border: 0;
   border-radius: 999px;
-  background: #fff4d6;
-  color: #7a5200;
+  background: #dff3e4;
+  color: #1f5c35;
   font: inherit;
   font-size: 15px;
   font-weight: 700;
@@ -842,8 +842,8 @@ button.cal-today:hover {
   margin-top: 12px;
   padding: 14px 16px;
   border-radius: 14px;
-  background: #fff4d6;
-  color: #3b3320;
+  background: #dff3e4;
+  color: #1f3a2b;
 }
 
 .did-you-know p {
