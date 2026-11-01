@@ -253,7 +253,6 @@ function renderCompletion(data) {
   }, archiveDate ? `_${data.puzzleDate}` : "");
 
   const number = puzzleNumber(data.puzzleDate);
-  $("solution-eyebrow").textContent = archiveDate ? "THIS PUZZLE" : "TODAY'S PUZZLE";
   $("archive-nav").hidden = !ARCHIVE_ENABLED;
   $("archive-nav-today").hidden = !archiveDate;
   $("archive-nav-calendar").textContent = archiveDate ? "Pick another puzzle" : "Play past puzzles";
@@ -264,14 +263,15 @@ function renderCompletion(data) {
   gameScreen.hidden = true;
   completionScreen.hidden = false;
 
-  $("completed-question").textContent = data.question || currentQuestion;
   $("completed-answer").textContent = data.answer || "Answer unavailable";
-  $("completed-explanation").textContent =
-    explanationWithoutFact(data.explanation) || "No explanation is available.";
 
-  const funFact = extractFunFact(data.explanation);
-  $("fun-fact-text").textContent = funFact;
-  $("fun-fact").hidden = !funFact;
+  // One line up front; the rest sits behind a "Did you know?" button.
+  const { lead, more } = splitExplanation(data.explanation);
+  $("completed-explanation").textContent = lead || "No explanation is available.";
+  $("did-you-know-text").textContent = more;
+  $("did-you-know").hidden = true;
+  $("did-you-know-button").hidden = !more;
+  $("did-you-know-button").setAttribute("aria-expanded", "false");
 
   $("completion-time").textContent = formatTime(data.elapsedSeconds || 0);
 
@@ -634,59 +634,29 @@ const CARD_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helve
 let shareImage = null;
 
 /*
-  "Did you know?" fact.
-  A puzzle's explanation can carry one short line that starts with 💡.
-  Older puzzles that list "Fun fact 1:" use that line instead.
+  Splits a puzzle's explanation into a one-line summary and the rest.
+  The summary is the first line, or the first sentence if that line is very long.
 */
-const CARD_FACT_MAX_LENGTH = 120;
+const EXPLANATION_LEAD_MAX = 170;
 
-function extractFunFact(explanation) {
-  const lines = String(explanation || "").split(/\r?\n/).map((line) => line.trim());
+function splitExplanation(explanation) {
+  const text = String(explanation || "").replace(/\r\n/g, "\n").trim();
+  if (!text) return { lead: "", more: "" };
 
-  const tagged = lines.find((line) => line.startsWith("💡"));
-  if (tagged) return tagged.replace(/^💡\s*(Did you know\??:?)?\s*/i, "").trim();
+  const firstBreak = text.indexOf("\n");
+  let lead = firstBreak === -1 ? text : text.slice(0, firstBreak);
+  let rest = firstBreak === -1 ? "" : text.slice(firstBreak + 1);
 
-  const numbered = lines.find((line) => /^✨?\s*Fun fact 1\s*:/i.test(line));
-  if (numbered) return numbered.replace(/^✨?\s*Fun fact 1\s*:\s*/i, "").trim();
-
-  return "";
-}
-
-// The explanation shown on the page without the 💡 line, which is shown on its own.
-function explanationWithoutFact(explanation) {
-  return String(explanation || "")
-    .split(/\r?\n/)
-    .filter((line) => !line.trim().startsWith("💡"))
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function wrapText(ctx, text, maxWidth, maxLines) {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines = [];
-  let current = "";
-
-  for (let index = 0; index < words.length; index += 1) {
-    const attempt = current ? `${current} ${words[index]}` : words[index];
-    if (ctx.measureText(attempt).width <= maxWidth || !current) {
-      current = attempt;
-      continue;
+  if (lead.length > EXPLANATION_LEAD_MAX) {
+    const sentenceEnd = lead.slice(0, EXPLANATION_LEAD_MAX).search(/[.!?](?=\s)(?![\s\S]*[.!?]\s)/);
+    const cut = sentenceEnd === -1 ? lead.search(/[.!?]\s/) : sentenceEnd;
+    if (cut !== -1 && cut < lead.length - 1) {
+      rest = `${lead.slice(cut + 1).trim()}\n${rest}`;
+      lead = lead.slice(0, cut + 1);
     }
-    lines.push(current);
-    current = words[index];
-    if (lines.length === maxLines) break;
   }
 
-  if (lines.length < maxLines && current) lines.push(current);
-
-  if (lines.length === maxLines && words.join(" ") !== lines.join(" ")) {
-    let last = lines[maxLines - 1].replace(/[.,;:!?]*$/, "");
-    while (last && ctx.measureText(`${last}…`).width > maxWidth) last = last.slice(0, -1).trimEnd();
-    lines[maxLines - 1] = `${last}…`;
-  }
-
-  return lines;
+  return { lead: lead.trim(), more: rest.replace(/\n{3,}/g, "\n\n").trim() };
 }
 
 function roundedRectPath(ctx, x, y, width, height, radius) {
@@ -739,26 +709,20 @@ function drawShareCard(result) {
   ctx.font = `110px ${CARD_FONT}`;
   ctx.fillText("🧠 🧩", center, 150);
 
-  // A short fact fits only when it is short enough to stay readable.
-  const fact = result.funFact && result.funFact.length <= CARD_FACT_MAX_LENGTH ? result.funFact : "";
-  const L = fact
-    ? { cardY: 310, cardH: 620, icon: 430, iconSize: 100, title: 525, titleSize: 76, tileY: 565, tileH: 170, value: 665, valueSize: 72, label: 713, cta: 830, ctaSize: 56, pillY: 1205, pillH: 80, pillText: 1257 }
-    : { cardY: 330, cardH: 700, icon: 490, iconSize: 120, title: 610, titleSize: 84, tileY: 665, tileH: 190, value: 770, valueSize: 78, label: 825, cta: 955, ctaSize: 62, pillY: 1100, pillH: 96, pillText: 1162 };
-
   ctx.save();
   ctx.shadowColor = "rgba(60, 50, 140, 0.18)";
   ctx.shadowBlur = 50;
   ctx.shadowOffsetY = 20;
   ctx.fillStyle = "#ffffff";
-  roundedRectPath(ctx, 90, L.cardY, 900, L.cardH, 56);
+  roundedRectPath(ctx, 90, 330, 900, 700, 56);
   ctx.fill();
   ctx.restore();
 
   ctx.fillStyle = "#20243a";
-  ctx.font = `${L.iconSize}px ${CARD_FONT}`;
-  ctx.fillText(solved ? "🏆" : "🧩", center, L.icon);
-  ctx.font = `800 ${L.titleSize}px ${CARD_FONT}`;
-  ctx.fillText(solved ? "Solved it!" : "Tough one!", center, L.title);
+  ctx.font = `120px ${CARD_FONT}`;
+  ctx.fillText(solved ? "🏆" : "🧩", center, 490);
+  ctx.font = `800 84px ${CARD_FONT}`;
+  ctx.fillText(solved ? "Solved it!" : "Tough one!", center, 610);
 
   const tiles = [
     ["Tries", String(result.attempts)],
@@ -772,46 +736,30 @@ function drawShareCard(result) {
   tiles.forEach(([label, value], index) => {
     const x = startX + index * (tileWidth + gap);
     ctx.fillStyle = "#f1efff";
-    roundedRectPath(ctx, x, L.tileY, tileWidth, L.tileH, 32);
+    roundedRectPath(ctx, x, 665, tileWidth, 190, 32);
     ctx.fill();
     ctx.fillStyle = "#5144ba";
-    ctx.font = `800 ${L.valueSize}px ${CARD_FONT}`;
-    ctx.fillText(value, x + tileWidth / 2, L.value);
+    ctx.font = `800 78px ${CARD_FONT}`;
+    ctx.fillText(value, x + tileWidth / 2, 770);
     ctx.fillStyle = "#6d7285";
     ctx.font = `600 34px ${CARD_FONT}`;
-    ctx.fillText(label, x + tileWidth / 2, L.label);
+    ctx.fillText(label, x + tileWidth / 2, 825);
   });
 
   ctx.fillStyle = "#20243a";
-  ctx.font = `800 ${L.ctaSize}px ${CARD_FONT}`;
-  ctx.fillText(solved ? "Can you beat that?" : "Can you crack it?", center, L.cta);
-
-  if (fact) {
-    ctx.fillStyle = "#fff4d6";
-    roundedRectPath(ctx, 90, 960, 900, 215, 40);
-    ctx.fill();
-
-    ctx.fillStyle = "#9a6700";
-    ctx.font = `800 30px ${CARD_FONT}`;
-    ctx.fillText("💡 DID YOU KNOW?", center, 1012);
-
-    ctx.fillStyle = "#3b3320";
-    ctx.font = `500 36px ${CARD_FONT}`;
-    wrapText(ctx, fact, 820, 3).forEach((line, index) => {
-      ctx.fillText(line, center, 1064 + index * 48);
-    });
-  }
+  ctx.font = `800 62px ${CARD_FONT}`;
+  ctx.fillText(solved ? "Can you beat that?" : "Can you crack it?", center, 955);
 
   ctx.fillStyle = "#6558d3";
-  roundedRectPath(ctx, 120, L.pillY, 840, L.pillH, L.pillH / 2);
+  roundedRectPath(ctx, 120, 1100, 840, 96, 48);
   ctx.fill();
   ctx.fillStyle = "#ffffff";
   ctx.font = `700 40px ${CARD_FONT}`;
-  ctx.fillText(siteAddress(), center, L.pillText);
+  ctx.fillText(siteAddress(), center, 1162);
 
   ctx.fillStyle = "#6d7285";
-  ctx.font = `500 ${fact ? 30 : 34}px ${CARD_FONT}`;
-  ctx.fillText("One puzzle a day. Three attempts.", center, fact ? 1330 : 1270);
+  ctx.font = `500 34px ${CARD_FONT}`;
+  ctx.fillText("One puzzle a day. Three attempts.", center, 1270);
 
   return canvas;
 }
@@ -887,8 +835,7 @@ function renderShare(data) {
     puzzleDate: data.puzzleDate,
     attempts: Math.max(1, Number(data.attempts) || 1),
     hintsUsed: Math.max(0, Number(data.hintsUsed) || 0),
-    elapsedSeconds: Number.isFinite(data.elapsedSeconds) ? data.elapsedSeconds : 0,
-    funFact: extractFunFact(data.explanation)
+    elapsedSeconds: Number.isFinite(data.elapsedSeconds) ? data.elapsedSeconds : 0
   };
 
   $("share-heading").textContent = shareResult.solved ? "Challenge a friend" : "Challenge a friend to try it";
@@ -1379,11 +1326,13 @@ $("answer-form").addEventListener("submit", submitAnswer);
 $("hint-button").addEventListener("click", requestHint);
 
 $("share-button").addEventListener("click", shareResultNatively);
-$("fun-fact-more").addEventListener("click", (event) => {
-  event.preventDefault();
-  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  $("solution-block").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
-  trackAnalytics("fun_fact_more", { game_name: "Brain Arcade" });
+$("did-you-know-button").addEventListener("click", () => {
+  const box = $("did-you-know");
+  const opening = box.hidden;
+  box.hidden = !opening;
+  $("did-you-know-button").setAttribute("aria-expanded", String(opening));
+  $("did-you-know-button").textContent = opening ? "Hide" : "💡 Did you know?";
+  if (opening) trackAnalytics("did_you_know_opened", { game_name: "Brain Arcade" });
 });
 
 if ($("archive-open-button")) $("archive-open-button").hidden = !ARCHIVE_ENABLED;

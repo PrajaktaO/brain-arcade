@@ -499,7 +499,7 @@ try:
             page.click("#submit-button")
             page.wait_for_selector("#completion-screen:not([hidden])")
             check("M4 guess call carries the date", calls[-1]["_fn"] == "archive" and calls[-1]["date"] == "2026-10-19" and calls[-1]["answer"] == "piano", str(calls[-1]))
-            check("M4b completion words for a past puzzle", "puzzle #6" in page.inner_text("#completion-message") and page.inner_text("#solution-eyebrow") == "THIS PUZZLE")
+            check("M4b completion words for a past puzzle", "puzzle #6" in page.inner_text("#completion-message"))
             check("M4c navigation buttons", page.is_visible("#archive-nav-calendar") and page.is_visible("#archive-nav-today"))
             names = [n for n, _ in events_of(page)]
             check("M4d archive events only, daily numbers untouched", "archive_started" in names and "archive_completed" in names and not ({"puzzle_started", "puzzle_completed", "answer_submitted", "hint_used", "puzzle_resumed"} & set(names)), str(names))
@@ -572,54 +572,48 @@ try:
             check("M-off past puzzles switched off: no button", not page.is_visible("#archive-open-button"))
             ctx.close()
 
-        # ---- N. "Did you know?" fact on the page and on the picture ----
-        SHORT_FACT = "Auroras glow green because of oxygen about 100 km up."
-        EXPL_TAGGED = "Aurora is a light show near the poles.\n\n💡 " + SHORT_FACT + "\n\n✨ Fun fact 1: The lights begin at the Sun.\n✨ Fun fact 2: Oxygen glows green."
-        EXPL_NUMBERED = "Bioluminescence is light made by living things.\n\n✨ Fun fact 1: Some mushrooms glow naturally in the dark.\n✨ Fun fact 2: Fireflies flash to find mates."
-        LONG_FACT = "x" * 10
-        EXPL_LONG = "💡 " + " ".join(["wordy"] * 40)
+        # ---- N. one-line explanation up front, "Did you know?" on request ----
+        EXPL_FACTS = "Aurora is the glowing light show that appears in the sky near the poles. 🌌\n\n✨ Fun fact 1: The lights begin at the Sun.\n✨ Fun fact 2: Oxygen glows green."
+        EXPL_SHORT = "A teapot begins and ends with T and is full of tea."
+        EXPL_ONE_LONG_LINE = "Uranus is the only planet named after a Greek deity. " + "Mercury, Venus, Mars, Jupiter, Saturn and Neptune are named after Roman gods, and Earth's name comes from old English and German words for ground and soil and land."
 
-        def fact_page(explanation):
+        def explain_page(explanation, viewport=None):
             solved = dict(SOLVED, explanation=explanation)
-            ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, hintsUsed=1, elapsedSeconds=134, **solved)]}, init_script=stub_files)
+            ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, hintsUsed=1, elapsedSeconds=134, **solved)]}, init_script=stub_files, viewport=viewport)
             play_to_solution(page)
             page.wait_for_function("document.getElementById('share-image') && !document.getElementById('share-image').hidden && document.getElementById('share-image').naturalWidth > 0")
             return ctx, page
 
-        ctx, page = fact_page(EXPL_TAGGED)
-        check("N1 the 💡 fact is shown near the top", page.is_visible("#fun-fact") and page.text_content("#fun-fact-text") == SHORT_FACT, page.text_content("#fun-fact-text"))
-        order = page.evaluate("(() => { const f = document.getElementById('fun-fact'); const s = document.getElementById('share-panel'); return !!(f.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING); })()")
-        check("N2 the fact comes before the Share panel", order)
-        check("N3 the 💡 line is not repeated in the explanation", "Auroras glow green" not in page.text_content("#completed-explanation") and "light show" in page.text_content("#completed-explanation"))
-        size = page.evaluate("[document.getElementById('share-image').naturalWidth, document.getElementById('share-image').naturalHeight]")
-        check("N4 the picture with a fact is still 1080 x 1350", size == [1080, 1350], str(size))
+        ctx, page = explain_page(EXPL_FACTS)
+        check("N1 one line of explanation is shown up front", page.text_content("#completed-explanation").startswith("Aurora is the glowing light show") and "Fun fact" not in page.text_content("#completed-explanation"), page.text_content("#completed-explanation"))
+        check("N2 the answer is shown with it", page.text_content("#completed-answer") == "A piano")
+        check("N3 Did you know? is offered but closed", page.is_visible("#did-you-know-button") and not page.is_visible("#did-you-know"))
+        order = page.evaluate("(() => { const a = document.getElementById('completed-explanation'); const s = document.getElementById('share-panel'); return !!(a.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING); })()")
+        check("N4 the explanation comes before the Share panel", order)
+        check("N5 no explanation block left at the bottom", page.locator(".solution").count() == 0)
         page.evaluate("window.dataLayer = []")
-        page.click("#fun-fact-more")
-        check("N5 read more is recorded", any(e[:2] == ["event", "fun_fact_more"] for e in datalayer(page)), str(datalayer(page)))
-        check("N5b the Share button still works with a fact", page.is_visible("#share-button"))
-        ctx.close()
-
-        ctx, page = fact_page(EXPL_NUMBERED)
-        check("N6 older puzzles use their first fun fact", page.text_content("#fun-fact-text") == "Some mushrooms glow naturally in the dark.", page.text_content("#fun-fact-text"))
-        check("N6b their explanation is left whole", "Fireflies flash" in page.text_content("#completed-explanation") and "Some mushrooms" in page.text_content("#completed-explanation"))
-        ctx.close()
-
-        ctx, page = fact_page("Keys of a piano.")
-        check("N7 no fact, no box", not page.is_visible("#fun-fact"))
+        page.click("#did-you-know-button")
+        check("N6 tapping opens the facts", page.is_visible("#did-you-know") and "The lights begin at the Sun." in page.text_content("#did-you-know-text"))
+        check("N7 opening is recorded", any(e[:2] == ["event", "did_you_know_opened"] for e in datalayer(page)), str(datalayer(page)))
+        page.click("#did-you-know-button")
+        check("N8 tapping again closes it", not page.is_visible("#did-you-know"))
         size = page.evaluate("[document.getElementById('share-image').naturalWidth, document.getElementById('share-image').naturalHeight]")
-        check("N7b the picture without a fact is unchanged in size", size == [1080, 1350], str(size))
+        check("N9 the picture is unchanged and has no fact banner", size == [1080, 1350] and "DID YOU KNOW" not in page.content())
         ctx.close()
 
-        ctx, page = fact_page(EXPL_LONG)
-        check("N8 a long fact still shows on the page", page.is_visible("#fun-fact"))
-        size = page.evaluate("[document.getElementById('share-image').naturalWidth, document.getElementById('share-image').naturalHeight]")
-        check("N8b a long fact leaves the picture layout alone", size == [1080, 1350], str(size))
+        ctx, page = explain_page(EXPL_SHORT)
+        check("N10 a one-line explanation has no Did you know? button", page.text_content("#completed-explanation") == EXPL_SHORT and not page.is_visible("#did-you-know-button"))
         ctx.close()
 
-        ctx, page = fact_page(EXPL_TAGGED)
-        page.set_viewport_size({"width": 320, "height": 640})
+        ctx, page = explain_page(EXPL_ONE_LONG_LINE)
+        lead = page.text_content("#completed-explanation")
+        check("N11 a very long first line is cut at a sentence", lead == "Uranus is the only planet named after a Greek deity." and page.is_visible("#did-you-know-button"), lead)
+        ctx.close()
+
+        ctx, page = explain_page(EXPL_FACTS, viewport={"width": 320, "height": 640})
+        page.click("#did-you-know-button")
         overflow = page.evaluate("document.documentElement.scrollWidth > document.documentElement.clientWidth")
-        check("N9 no sideways scroll at 320 px with a fact", not overflow)
+        check("N12 no sideways scroll at 320 px", not overflow)
         ctx.close()
 
         browser.close()
