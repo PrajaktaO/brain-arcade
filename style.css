@@ -801,3 +801,53 @@ button.cal-today:hover {
 }
 
 .archive-open[hidden] { display: none; }
+
+.answer-box {
+  margin: 0 0 22px;
+  padding: 18px;
+  border-radius: 16px;
+  background: #f3f1ff;
+  text-align: left;
+}
+
+.answer-box .solution-answer {
+  margin-bottom: 8px;
+}
+
+#completed-explanation {
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.did-you-know-button {
+  margin: 14px 0 0;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #dff3e4;
+  color: #1f5c35;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.did-you-know-button[hidden],
+.did-you-know[hidden] {
+  display: none;
+}
+
+.did-you-know {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #dff3e4;
+  color: #1f3a2b;
+}
+
+.did-you-know p {
+  margin: 0;
+  line-height: 1.65;
+  white-space: pre-line;
+}

@@ -118,6 +118,15 @@
         <span>Completion time</span>
         <strong id="completion-time">00:00</strong>
       </div>
+      <section class="answer-box" aria-label="Answer">
+        <p class="answer-label">Answer</p>
+        <p id="completed-answer" class="solution-answer"></p>
+        <p id="completed-explanation"></p>
+        <button id="did-you-know-button" class="did-you-know-button" type="button" aria-expanded="false" hidden>💡 Did you know?</button>
+        <div id="did-you-know" class="did-you-know" hidden>
+          <p id="did-you-know-text"></p>
+        </div>
+      </section>
       <p id="challenge-result" class="challenge-result" role="status" hidden></p>
       <section id="share-panel" class="share-panel" aria-labelledby="share-heading" hidden>
         <h3 id="share-heading">Challenge a friend</h3>
@@ -129,14 +138,6 @@
         </div>
         <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
       </section>
-      <div class="solution">
-        <p id="solution-eyebrow" class="eyebrow">TODAY'S PUZZLE</p>
-        <p id="completed-question" class="solution-question"></p>
-        <p class="answer-label">Answer</p>
-        <p id="completed-answer" class="solution-answer"></p>
-        <p class="answer-label">Explanation</p>
-        <p id="completed-explanation"></p>
-      </div>
       <div id="archive-nav" class="archive-nav" hidden>
         <button id="archive-nav-calendar" class="secondary-button" type="button">Play past puzzles</button>
         <button id="archive-nav-today" class="secondary-button" type="button" hidden>Today's puzzle</button>

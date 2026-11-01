@@ -253,7 +253,6 @@ function renderCompletion(data) {
   }, archiveDate ? `_${data.puzzleDate}` : "");
 
   const number = puzzleNumber(data.puzzleDate);
-  $("solution-eyebrow").textContent = archiveDate ? "THIS PUZZLE" : "TODAY'S PUZZLE";
   $("archive-nav").hidden = !ARCHIVE_ENABLED;
   $("archive-nav-today").hidden = !archiveDate;
   $("archive-nav-calendar").textContent = archiveDate ? "Pick another puzzle" : "Play past puzzles";
@@ -264,10 +263,15 @@ function renderCompletion(data) {
   gameScreen.hidden = true;
   completionScreen.hidden = false;
 
-  $("completed-question").textContent = data.question || currentQuestion;
   $("completed-answer").textContent = data.answer || "Answer unavailable";
-  $("completed-explanation").textContent =
-    data.explanation || "No explanation is available.";
+
+  // One line up front; the rest sits behind a "Did you know?" button.
+  const { lead, more } = splitExplanation(data.explanation);
+  $("completed-explanation").textContent = lead || "No explanation is available.";
+  $("did-you-know-text").textContent = more;
+  $("did-you-know").hidden = true;
+  $("did-you-know-button").hidden = !more;
+  $("did-you-know-button").setAttribute("aria-expanded", "false");
 
   $("completion-time").textContent = formatTime(data.elapsedSeconds || 0);
 
@@ -628,6 +632,32 @@ const CARD_WIDTH = 1080;
 const CARD_HEIGHT = 1350;
 const CARD_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 let shareImage = null;
+
+/*
+  Splits a puzzle's explanation into a one-line summary and the rest.
+  The summary is the first line, or the first sentence if that line is very long.
+*/
+const EXPLANATION_LEAD_MAX = 170;
+
+function splitExplanation(explanation) {
+  const text = String(explanation || "").replace(/\r\n/g, "\n").trim();
+  if (!text) return { lead: "", more: "" };
+
+  const firstBreak = text.indexOf("\n");
+  let lead = firstBreak === -1 ? text : text.slice(0, firstBreak);
+  let rest = firstBreak === -1 ? "" : text.slice(firstBreak + 1);
+
+  if (lead.length > EXPLANATION_LEAD_MAX) {
+    const sentenceEnd = lead.slice(0, EXPLANATION_LEAD_MAX).search(/[.!?](?=\s)(?![\s\S]*[.!?]\s)/);
+    const cut = sentenceEnd === -1 ? lead.search(/[.!?]\s/) : sentenceEnd;
+    if (cut !== -1 && cut < lead.length - 1) {
+      rest = `${lead.slice(cut + 1).trim()}\n${rest}`;
+      lead = lead.slice(0, cut + 1);
+    }
+  }
+
+  return { lead: lead.trim(), more: rest.replace(/\n{3,}/g, "\n\n").trim() };
+}
 
 function roundedRectPath(ctx, x, y, width, height, radius) {
   ctx.beginPath();
@@ -1296,6 +1326,14 @@ $("answer-form").addEventListener("submit", submitAnswer);
 $("hint-button").addEventListener("click", requestHint);
 
 $("share-button").addEventListener("click", shareResultNatively);
+$("did-you-know-button").addEventListener("click", () => {
+  const box = $("did-you-know");
+  const opening = box.hidden;
+  box.hidden = !opening;
+  $("did-you-know-button").setAttribute("aria-expanded", String(opening));
+  $("did-you-know-button").textContent = opening ? "Hide" : "💡 Did you know?";
+  if (opening) trackAnalytics("did_you_know_opened", { game_name: "Brain Arcade" });
+});
 
 if ($("archive-open-button")) $("archive-open-button").hidden = !ARCHIVE_ENABLED;
 
