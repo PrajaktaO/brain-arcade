@@ -572,6 +572,56 @@ try:
             check("M-off past puzzles switched off: no button", not page.is_visible("#archive-open-button"))
             ctx.close()
 
+        # ---- N. "Did you know?" fact on the page and on the picture ----
+        SHORT_FACT = "Auroras glow green because of oxygen about 100 km up."
+        EXPL_TAGGED = "Aurora is a light show near the poles.\n\n💡 " + SHORT_FACT + "\n\n✨ Fun fact 1: The lights begin at the Sun.\n✨ Fun fact 2: Oxygen glows green."
+        EXPL_NUMBERED = "Bioluminescence is light made by living things.\n\n✨ Fun fact 1: Some mushrooms glow naturally in the dark.\n✨ Fun fact 2: Fireflies flash to find mates."
+        LONG_FACT = "x" * 10
+        EXPL_LONG = "💡 " + " ".join(["wordy"] * 40)
+
+        def fact_page(explanation):
+            solved = dict(SOLVED, explanation=explanation)
+            ctx, page, calls = make_context(browser, {"start": [snapshot()], "guess": [snapshot(attempts=2, hintsUsed=1, elapsedSeconds=134, **solved)]}, init_script=stub_files)
+            play_to_solution(page)
+            page.wait_for_function("document.getElementById('share-image') && !document.getElementById('share-image').hidden && document.getElementById('share-image').naturalWidth > 0")
+            return ctx, page
+
+        ctx, page = fact_page(EXPL_TAGGED)
+        check("N1 the 💡 fact is shown near the top", page.is_visible("#fun-fact") and page.text_content("#fun-fact-text") == SHORT_FACT, page.text_content("#fun-fact-text"))
+        order = page.evaluate("(() => { const f = document.getElementById('fun-fact'); const s = document.getElementById('share-panel'); return !!(f.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING); })()")
+        check("N2 the fact comes before the Share panel", order)
+        check("N3 the 💡 line is not repeated in the explanation", "Auroras glow green" not in page.text_content("#completed-explanation") and "light show" in page.text_content("#completed-explanation"))
+        size = page.evaluate("[document.getElementById('share-image').naturalWidth, document.getElementById('share-image').naturalHeight]")
+        check("N4 the picture with a fact is still 1080 x 1350", size == [1080, 1350], str(size))
+        page.evaluate("window.dataLayer = []")
+        page.click("#fun-fact-more")
+        check("N5 read more is recorded", any(e[:2] == ["event", "fun_fact_more"] for e in datalayer(page)), str(datalayer(page)))
+        check("N5b the Share button still works with a fact", page.is_visible("#share-button"))
+        ctx.close()
+
+        ctx, page = fact_page(EXPL_NUMBERED)
+        check("N6 older puzzles use their first fun fact", page.text_content("#fun-fact-text") == "Some mushrooms glow naturally in the dark.", page.text_content("#fun-fact-text"))
+        check("N6b their explanation is left whole", "Fireflies flash" in page.text_content("#completed-explanation") and "Some mushrooms" in page.text_content("#completed-explanation"))
+        ctx.close()
+
+        ctx, page = fact_page("Keys of a piano.")
+        check("N7 no fact, no box", not page.is_visible("#fun-fact"))
+        size = page.evaluate("[document.getElementById('share-image').naturalWidth, document.getElementById('share-image').naturalHeight]")
+        check("N7b the picture without a fact is unchanged in size", size == [1080, 1350], str(size))
+        ctx.close()
+
+        ctx, page = fact_page(EXPL_LONG)
+        check("N8 a long fact still shows on the page", page.is_visible("#fun-fact"))
+        size = page.evaluate("[document.getElementById('share-image').naturalWidth, document.getElementById('share-image').naturalHeight]")
+        check("N8b a long fact leaves the picture layout alone", size == [1080, 1350], str(size))
+        ctx.close()
+
+        ctx, page = fact_page(EXPL_TAGGED)
+        page.set_viewport_size({"width": 320, "height": 640})
+        overflow = page.evaluate("document.documentElement.scrollWidth > document.documentElement.clientWidth")
+        check("N9 no sideways scroll at 320 px with a fact", not overflow)
+        ctx.close()
+
         browser.close()
 finally:
     server.terminate()

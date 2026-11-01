@@ -801,3 +801,34 @@ button.cal-today:hover {
 }
 
 .archive-open[hidden] { display: none; }
+
+.fun-fact {
+  margin: 0 0 22px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: #fff4d6;
+  color: #3b3320;
+  text-align: left;
+}
+
+.fun-fact strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #9a6700;
+  font-size: 14px;
+}
+
+.fun-fact p {
+  margin: 0 0 8px;
+  line-height: 1.55;
+}
+
+.fun-fact-more {
+  color: #9a6700;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.fun-fact[hidden] {
+  display: none;
+}

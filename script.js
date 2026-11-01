@@ -267,7 +267,11 @@ function renderCompletion(data) {
   $("completed-question").textContent = data.question || currentQuestion;
   $("completed-answer").textContent = data.answer || "Answer unavailable";
   $("completed-explanation").textContent =
-    data.explanation || "No explanation is available.";
+    explanationWithoutFact(data.explanation) || "No explanation is available.";
+
+  const funFact = extractFunFact(data.explanation);
+  $("fun-fact-text").textContent = funFact;
+  $("fun-fact").hidden = !funFact;
 
   $("completion-time").textContent = formatTime(data.elapsedSeconds || 0);
 
@@ -629,6 +633,62 @@ const CARD_HEIGHT = 1350;
 const CARD_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 let shareImage = null;
 
+/*
+  "Did you know?" fact.
+  A puzzle's explanation can carry one short line that starts with 💡.
+  Older puzzles that list "Fun fact 1:" use that line instead.
+*/
+const CARD_FACT_MAX_LENGTH = 120;
+
+function extractFunFact(explanation) {
+  const lines = String(explanation || "").split(/\r?\n/).map((line) => line.trim());
+
+  const tagged = lines.find((line) => line.startsWith("💡"));
+  if (tagged) return tagged.replace(/^💡\s*(Did you know\??:?)?\s*/i, "").trim();
+
+  const numbered = lines.find((line) => /^✨?\s*Fun fact 1\s*:/i.test(line));
+  if (numbered) return numbered.replace(/^✨?\s*Fun fact 1\s*:\s*/i, "").trim();
+
+  return "";
+}
+
+// The explanation shown on the page without the 💡 line, which is shown on its own.
+function explanationWithoutFact(explanation) {
+  return String(explanation || "")
+    .split(/\r?\n/)
+    .filter((line) => !line.trim().startsWith("💡"))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function wrapText(ctx, text, maxWidth, maxLines) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let current = "";
+
+  for (let index = 0; index < words.length; index += 1) {
+    const attempt = current ? `${current} ${words[index]}` : words[index];
+    if (ctx.measureText(attempt).width <= maxWidth || !current) {
+      current = attempt;
+      continue;
+    }
+    lines.push(current);
+    current = words[index];
+    if (lines.length === maxLines) break;
+  }
+
+  if (lines.length < maxLines && current) lines.push(current);
+
+  if (lines.length === maxLines && words.join(" ") !== lines.join(" ")) {
+    let last = lines[maxLines - 1].replace(/[.,;:!?]*$/, "");
+    while (last && ctx.measureText(`${last}…`).width > maxWidth) last = last.slice(0, -1).trimEnd();
+    lines[maxLines - 1] = `${last}…`;
+  }
+
+  return lines;
+}
+
 function roundedRectPath(ctx, x, y, width, height, radius) {
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
@@ -679,20 +739,26 @@ function drawShareCard(result) {
   ctx.font = `110px ${CARD_FONT}`;
   ctx.fillText("🧠 🧩", center, 150);
 
+  // A short fact fits only when it is short enough to stay readable.
+  const fact = result.funFact && result.funFact.length <= CARD_FACT_MAX_LENGTH ? result.funFact : "";
+  const L = fact
+    ? { cardY: 310, cardH: 620, icon: 430, iconSize: 100, title: 525, titleSize: 76, tileY: 565, tileH: 170, value: 665, valueSize: 72, label: 713, cta: 830, ctaSize: 56, pillY: 1205, pillH: 80, pillText: 1257 }
+    : { cardY: 330, cardH: 700, icon: 490, iconSize: 120, title: 610, titleSize: 84, tileY: 665, tileH: 190, value: 770, valueSize: 78, label: 825, cta: 955, ctaSize: 62, pillY: 1100, pillH: 96, pillText: 1162 };
+
   ctx.save();
   ctx.shadowColor = "rgba(60, 50, 140, 0.18)";
   ctx.shadowBlur = 50;
   ctx.shadowOffsetY = 20;
   ctx.fillStyle = "#ffffff";
-  roundedRectPath(ctx, 90, 330, 900, 700, 56);
+  roundedRectPath(ctx, 90, L.cardY, 900, L.cardH, 56);
   ctx.fill();
   ctx.restore();
 
   ctx.fillStyle = "#20243a";
-  ctx.font = `120px ${CARD_FONT}`;
-  ctx.fillText(solved ? "🏆" : "🧩", center, 490);
-  ctx.font = `800 84px ${CARD_FONT}`;
-  ctx.fillText(solved ? "Solved it!" : "Tough one!", center, 610);
+  ctx.font = `${L.iconSize}px ${CARD_FONT}`;
+  ctx.fillText(solved ? "🏆" : "🧩", center, L.icon);
+  ctx.font = `800 ${L.titleSize}px ${CARD_FONT}`;
+  ctx.fillText(solved ? "Solved it!" : "Tough one!", center, L.title);
 
   const tiles = [
     ["Tries", String(result.attempts)],
@@ -706,30 +772,46 @@ function drawShareCard(result) {
   tiles.forEach(([label, value], index) => {
     const x = startX + index * (tileWidth + gap);
     ctx.fillStyle = "#f1efff";
-    roundedRectPath(ctx, x, 665, tileWidth, 190, 32);
+    roundedRectPath(ctx, x, L.tileY, tileWidth, L.tileH, 32);
     ctx.fill();
     ctx.fillStyle = "#5144ba";
-    ctx.font = `800 78px ${CARD_FONT}`;
-    ctx.fillText(value, x + tileWidth / 2, 770);
+    ctx.font = `800 ${L.valueSize}px ${CARD_FONT}`;
+    ctx.fillText(value, x + tileWidth / 2, L.value);
     ctx.fillStyle = "#6d7285";
     ctx.font = `600 34px ${CARD_FONT}`;
-    ctx.fillText(label, x + tileWidth / 2, 825);
+    ctx.fillText(label, x + tileWidth / 2, L.label);
   });
 
   ctx.fillStyle = "#20243a";
-  ctx.font = `800 62px ${CARD_FONT}`;
-  ctx.fillText(solved ? "Can you beat that?" : "Can you crack it?", center, 955);
+  ctx.font = `800 ${L.ctaSize}px ${CARD_FONT}`;
+  ctx.fillText(solved ? "Can you beat that?" : "Can you crack it?", center, L.cta);
+
+  if (fact) {
+    ctx.fillStyle = "#fff4d6";
+    roundedRectPath(ctx, 90, 960, 900, 215, 40);
+    ctx.fill();
+
+    ctx.fillStyle = "#9a6700";
+    ctx.font = `800 30px ${CARD_FONT}`;
+    ctx.fillText("💡 DID YOU KNOW?", center, 1012);
+
+    ctx.fillStyle = "#3b3320";
+    ctx.font = `500 36px ${CARD_FONT}`;
+    wrapText(ctx, fact, 820, 3).forEach((line, index) => {
+      ctx.fillText(line, center, 1064 + index * 48);
+    });
+  }
 
   ctx.fillStyle = "#6558d3";
-  roundedRectPath(ctx, 120, 1100, 840, 96, 48);
+  roundedRectPath(ctx, 120, L.pillY, 840, L.pillH, L.pillH / 2);
   ctx.fill();
   ctx.fillStyle = "#ffffff";
   ctx.font = `700 40px ${CARD_FONT}`;
-  ctx.fillText(siteAddress(), center, 1162);
+  ctx.fillText(siteAddress(), center, L.pillText);
 
   ctx.fillStyle = "#6d7285";
-  ctx.font = `500 34px ${CARD_FONT}`;
-  ctx.fillText("One puzzle a day. Three attempts.", center, 1270);
+  ctx.font = `500 ${fact ? 30 : 34}px ${CARD_FONT}`;
+  ctx.fillText("One puzzle a day. Three attempts.", center, fact ? 1330 : 1270);
 
   return canvas;
 }
@@ -805,7 +887,8 @@ function renderShare(data) {
     puzzleDate: data.puzzleDate,
     attempts: Math.max(1, Number(data.attempts) || 1),
     hintsUsed: Math.max(0, Number(data.hintsUsed) || 0),
-    elapsedSeconds: Number.isFinite(data.elapsedSeconds) ? data.elapsedSeconds : 0
+    elapsedSeconds: Number.isFinite(data.elapsedSeconds) ? data.elapsedSeconds : 0,
+    funFact: extractFunFact(data.explanation)
   };
 
   $("share-heading").textContent = shareResult.solved ? "Challenge a friend" : "Challenge a friend to try it";
@@ -1296,6 +1379,12 @@ $("answer-form").addEventListener("submit", submitAnswer);
 $("hint-button").addEventListener("click", requestHint);
 
 $("share-button").addEventListener("click", shareResultNatively);
+$("fun-fact-more").addEventListener("click", (event) => {
+  event.preventDefault();
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  $("solution-block").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  trackAnalytics("fun_fact_more", { game_name: "Brain Arcade" });
+});
 
 if ($("archive-open-button")) $("archive-open-button").hidden = !ARCHIVE_ENABLED;
 
