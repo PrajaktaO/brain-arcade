@@ -268,7 +268,7 @@ function renderCompletion(data) {
   // One line up front; the rest sits behind a "Did you know?" button.
   const { lead, more } = splitExplanation(data.explanation);
   $("completed-explanation").textContent = lead || "No explanation is available.";
-  $("did-you-know-text").textContent = more;
+  renderFacts($("did-you-know-text"), more);
   $("did-you-know").hidden = true;
   $("did-you-know-button").hidden = !more;
   $("did-you-know-button").setAttribute("aria-expanded", "false");
@@ -657,6 +657,27 @@ function splitExplanation(explanation) {
   }
 
   return { lead: lead.trim(), more: rest.replace(/\n{3,}/g, "\n\n").trim() };
+}
+
+/*
+  Fills the "Did you know?" box. A line that starts with "Fun fact 1:", "Fun fact 2:" and so on
+  gets that label in bold so each fact is easy to spot. Everything is added as plain text,
+  never as HTML.
+*/
+function renderFacts(box, text) {
+  box.textContent = "";
+  String(text || "").split("\n").forEach((line, index) => {
+    if (index > 0) box.appendChild(document.createTextNode("\n"));
+    const match = line.match(/^(Fun fact \d+:)(.*)$/);
+    if (!match) {
+      box.appendChild(document.createTextNode(line));
+      return;
+    }
+    const label = document.createElement("strong");
+    label.textContent = match[1];
+    box.appendChild(label);
+    box.appendChild(document.createTextNode(match[2]));
+  });
 }
 
 function roundedRectPath(ctx, x, y, width, height, radius) {
