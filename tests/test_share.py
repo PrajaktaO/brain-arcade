@@ -573,7 +573,7 @@ try:
             ctx.close()
 
         # ---- N. one-line explanation up front, "Did you know?" on request ----
-        EXPL_FACTS = "Aurora is the glowing light show that appears in the sky near the poles. 🌌\n\n✨ Fun fact 1: The lights begin at the Sun.\n✨ Fun fact 2: Oxygen glows green."
+        EXPL_FACTS = "Aurora is the glowing light show that appears in the sky near the poles.\n\nFun fact 1: The lights begin at the Sun.\n\nFun fact 2: Oxygen glows green. <b>not bold</b>"
         EXPL_SHORT = "A teapot begins and ends with T and is full of tea."
         EXPL_ONE_LONG_LINE = "Uranus is the only planet named after a Greek deity. " + "Mercury, Venus, Mars, Jupiter, Saturn and Neptune are named after Roman gods, and Earth's name comes from old English and German words for ground and soil and land."
 
@@ -599,6 +599,16 @@ try:
         check("N8 tapping again closes it", not page.is_visible("#did-you-know"))
         size = page.evaluate("[document.getElementById('share-image').naturalWidth, document.getElementById('share-image').naturalHeight]")
         check("N9 the picture is unchanged and has no fact banner", size == [1080, 1350] and "DID YOU KNOW" not in page.content())
+        ctx.close()
+
+        ctx, page = explain_page(EXPL_FACTS)
+        page.click("#did-you-know-button")
+        labels = page.eval_on_selector_all("#did-you-know-text strong", "els => els.map(e => e.textContent)")
+        weight = page.evaluate("parseInt(getComputedStyle(document.querySelector('#did-you-know-text strong')).fontWeight, 10)")
+        full = page.text_content("#did-you-know-text")
+        check("N13 each Fun fact label is shown in bold", labels == ["Fun fact 1:", "Fun fact 2:"] and weight >= 700, f"{labels} {weight}")
+        check("N14 the fact text and line breaks are kept", full == "Fun fact 1: The lights begin at the Sun.\n\nFun fact 2: Oxygen glows green. <b>not bold</b>", repr(full))
+        check("N15 text from the database is never treated as HTML", page.locator("#did-you-know-text b").count() == 0)
         ctx.close()
 
         ctx, page = explain_page(EXPL_SHORT)

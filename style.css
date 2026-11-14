@@ -851,3 +851,7 @@ button.cal-today:hover {
   line-height: 1.65;
   white-space: pre-line;
 }
+
+.did-you-know strong {
+  font-weight: 800;
+}
