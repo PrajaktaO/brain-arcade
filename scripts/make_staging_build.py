@@ -7,6 +7,7 @@ Usage:
 What it changes in the copy (this repository is never modified):
   * points the game at the staging Supabase project (URL and publishable key only);
   * removes Google Analytics, so testing never counts as real traffic;
+  * copies the images/ folder (puzzle pictures);
   * adds a small "STAGING" badge and a "[STAGING]" title prefix.
 
 Only the three site files are copied. Never pass a secret or service-role key:
@@ -53,6 +54,12 @@ def main(out_dir, url, key):
     if (src / "og-image.png").exists():
         (out / "og-image.png").write_bytes((src / "og-image.png").read_bytes())
     (out / "style.css").write_text((src / "style.css").read_text(encoding="utf-8"), encoding="utf-8")
+    images = src / "images"
+    if images.is_dir():
+        (out / "images").mkdir(exist_ok=True)
+        for f in images.iterdir():
+            if f.is_file():
+                (out / "images" / f.name).write_bytes(f.read_bytes())
     (out / "README.md").write_text(
         "# brain-arcade-staging\n\nTest copy of the Brain Arcade site, built from the `v2-development` branch of "
         "`brain-arcade` by `scripts/make_staging_build.py`. It talks to the staging Supabase project and has no "

@@ -167,12 +167,46 @@ function renderHints() {
   $("hint-box").hidden = hintLines.length === 0;
 }
 
+// A puzzle can carry one picture. The question text holds a tag such as
+// [[img:images/triangles-13.svg|A triangle split into nine small triangles]]
+// The tag is removed from the text and the picture is shown under the question.
+// Only files inside this site's images/ folder are accepted, never outside links.
+const IMAGE_TAG = /\[\[img:([^|\]]*)\|([^\]]*)\]\]/i;
+const IMAGE_PATH = /^images\/[a-z0-9_-]+\.(svg|png|webp|jpg|jpeg)$/i;
+
+function splitQuestionImage(question) {
+  const text = String(question || "");
+  const match = text.match(IMAGE_TAG);
+  if (!match) return { text, src: "", alt: "" };
+  const cleaned = text.replace(IMAGE_TAG, "").replace(/\n{3,}/g, "\n\n").trim();
+  const src = match[1].trim();
+  if (!IMAGE_PATH.test(src)) return { text: cleaned, src: "", alt: "" };
+  return { text: cleaned, src, alt: match[2].trim() };
+}
+
+function renderQuestion(question) {
+  const { text, src, alt } = splitQuestionImage(question);
+  $("question").textContent = text;
+  const figure = $("question-image");
+  const img = $("question-image-img");
+  img.onerror = () => { figure.hidden = true; };
+  if (src) {
+    img.alt = alt;
+    img.src = src;
+    figure.hidden = false;
+  } else {
+    figure.hidden = true;
+    img.removeAttribute("src");
+    img.alt = "";
+  }
+}
+
 function displayGame(data) {
   currentQuestion = data.question;
   gameCompleted = Boolean(data.completed);
 
   $("category").textContent = data.category;
-  $("question").textContent = data.question;
+  renderQuestion(data.question);
   updateAttempts(data);
 
   $("hint-box").hidden = true;
