@@ -259,7 +259,7 @@ try:
                "?d=" + TODAY + "&a=9&h=1", "?d=" + TODAY + "&t=0", "?d=" + TODAY + "&a=2", "?d=" + TODAY + "&t=99999999", "?d=" + TODAY + "&t=-5", "?d=" + TODAY + "&x=1", "?d=" + TODAY + "&h=1"]
         for q in bad:
             ctx, page = open_challenge(q)
-            check(f"H3 invalid link ignored {q[:34]}", not page.is_visible("#challenge-banner") and page.query_selector("img:not(#share-image)") is None)
+            check(f"H3 invalid link ignored {q[:34]}", not page.is_visible("#challenge-banner") and page.query_selector("img:not(#share-image):not(#question-image-img)") is None)
             ctx.close()
 
         win = dict(attempts=2, hintsUsed=1, elapsedSeconds=134, **SOLVED)
@@ -624,6 +624,51 @@ try:
         page.click("#did-you-know-button")
         overflow = page.evaluate("document.documentElement.scrollWidth > document.documentElement.clientWidth")
         check("N12 no sideways scroll at 320 px", not overflow)
+        ctx.close()
+
+        # ---- O. a puzzle can carry a picture ----
+        def question_page(question, viewport=None):
+            ctx, page, calls = make_context(browser, {"start": [snapshot(question=question)]}, viewport=viewport)
+            page.requested = []
+            page.on("request", lambda r: page.requested.append(r.url))
+            page.goto(BASE)
+            page.click("#start-button")
+            page.wait_for_selector("#game-screen:not([hidden])")
+            return ctx, page
+
+        TRI = "How many triangles can you count?\n\n[[img:images/triangles-13.svg|A large triangle split into nine small triangles]]"
+        ctx, page = question_page(TRI)
+        page.wait_for_function("document.getElementById('question-image-img').naturalWidth > 0")
+        check("O1 the picture tag is not shown in the question text", page.text_content("#question") == "How many triangles can you count?", repr(page.text_content("#question")))
+        check("O2 the picture is shown with its description", page.is_visible("#question-image") and page.get_attribute("#question-image-img", "src") == "images/triangles-13.svg" and page.get_attribute("#question-image-img", "alt") == "A large triangle split into nine small triangles")
+        check("O3 the picture loads", page.evaluate("document.getElementById('question-image-img').naturalWidth") > 0)
+        page.screenshot(path=os.path.join(SHOTS, "question_image.png"), full_page=True)
+        ctx.close()
+
+        ctx, page = question_page("What has keys but cannot open locks?")
+        check("O4 a puzzle without a picture shows none", not page.is_visible("#question-image"))
+        ctx.close()
+
+        ctx, page = question_page("Count them.\n\n[[img:https://example.com/x.png|outside picture]]")
+        check("O5 a link to another site is never loaded or shown", not page.is_visible("#question-image") and not any("example.com" in u for u in page.requested) and page.text_content("#question") == "Count them.")
+        ctx.close()
+
+        ctx, page = question_page("Count them.\n\n[[img:images/../script.js|sneaky]]")
+        check("O6 a path that climbs out of the images folder is refused", not page.is_visible("#question-image") and not any(u.endswith("script.js") and "sneaky" in u for u in page.requested) and page.get_attribute("#question-image-img", "src") is None)
+        ctx.close()
+
+        ctx, page = question_page("Count them.\n\n[[img:images/does-not-exist.svg|missing]]")
+        page.wait_for_timeout(500)
+        check("O7 a missing picture is hidden and the question still shows", not page.is_visible("#question-image") and page.text_content("#question") == "Count them.")
+        ctx.close()
+
+        ctx, page = question_page(TRI, viewport={"width": 320, "height": 640})
+        page.wait_for_function("document.getElementById('question-image-img').naturalWidth > 0")
+        check("O8 no sideways scroll at 320 px with a picture", not page.evaluate("document.documentElement.scrollWidth > document.documentElement.clientWidth"))
+        ctx.close()
+
+        ctx, page = question_page('<img src=x onerror=alert(1)> Count them.')
+        check("O9 HTML in the question is still shown as text", page.locator("#question img").count() == 0 and "<img" in page.text_content("#question"))
         ctx.close()
 
         browser.close()
