@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 270" width="300" height="270" role="img" aria-label="A large triangle divided into sixteen small triangles. Ten of the small triangles contain the number 1.">
+  <rect width="300" height="270" fill="#ffffff"/>
+  <g fill="none" stroke="#1f2937" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <polygon points="150,20 20,245 280,245"/>
+  <line x1="117.5" y1="76.2" x2="182.5" y2="76.2"/>
+  <line x1="117.5" y1="76.2" x2="215.0" y2="245.0"/>
+  <line x1="182.5" y1="76.2" x2="85.0" y2="245.0"/>
+  <line x1="85.0" y1="132.5" x2="215.0" y2="132.5"/>
+  <line x1="85.0" y1="132.5" x2="150.0" y2="245.0"/>
+  <line x1="215.0" y1="132.5" x2="150.0" y2="245.0"/>
+  <line x1="52.5" y1="188.8" x2="247.5" y2="188.8"/>
+  <line x1="52.5" y1="188.8" x2="85.0" y2="245.0"/>
+  <line x1="247.5" y1="188.8" x2="215.0" y2="245.0"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="20" text-anchor="middle" fill="#4f46e5">
+    <text x="150.0" y="64.5">1</text>
+    <text x="117.5" y="120.8">1</text>
+    <text x="182.5" y="120.8">1</text>
+    <text x="85.0" y="177.0">1</text>
+    <text x="150.0" y="177.0">1</text>
+    <text x="215.0" y="177.0">1</text>
+    <text x="52.5" y="233.2">1</text>
+    <text x="117.5" y="233.2">1</text>
+    <text x="182.5" y="233.2">1</text>
+    <text x="247.5" y="233.2">1</text>
+  </g>
+</svg>
